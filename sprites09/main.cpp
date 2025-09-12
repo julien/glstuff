@@ -1,9 +1,9 @@
+#include "utils.h"
+#include "vec2.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <time.h>
-#include "utils.h"
-#include "vec2.h"
 
 #define SPRITE_COUNT 1000000
 #define SPRITE_MAX_FORCE 30
@@ -14,12 +14,22 @@
 int g_viewport_width = 800;
 int g_viewport_height = 800;
 
-GLfloat view_matrix[16] = {
-	2.0f / (float) g_viewport_width, 0.0f, 0.0f, 0.0f,
-	0.0f, -2.0f / (float) g_viewport_height, 0.0f, 0.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, 0.0f, 0.0f
-};
+GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           -2.0f / (float)g_viewport_height,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           1.0f,
+                           1.0f,
+                           -1.0f,
+                           1.0f,
+                           0.0f,
+                           0.0f};
 
 static const size_t vertcount = 6;
 static float rgba[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -107,9 +117,9 @@ void draw(float x, float y, float w, float h) {
 	vuvcurr[10] = 1;
 	vuvcurr[11] = 0;
 
-	vposcurr = (float*)((char*) vposcurr + (sizeof(float) * 12));
-	vcolcurr = (float*)((char*) vcolcurr + (sizeof(float) * 24));
-	vuvcurr = (float*)((char*) vuvcurr + (sizeof(float) * 12));
+	vposcurr = (float *)((char *)vposcurr + (sizeof(float) * 12));
+	vcolcurr = (float *)((char *)vcolcurr + (sizeof(float) * 24));
+	vuvcurr = (float *)((char *)vuvcurr + (sizeof(float) * 12));
 
 	++buffidx;
 }
@@ -118,15 +128,15 @@ void flush() {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 2, vposdata);
+	                sizeof(float) * buffidx * vertcount * 2, vposdata);
 
 	glBindBuffer(GL_ARRAY_BUFFER, colvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 4, vcoldata);
+	                sizeof(float) * buffidx * vertcount * 4, vcoldata);
 
 	glBindBuffer(GL_ARRAY_BUFFER, uvvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 2, vuvdata);
+	                sizeof(float) * buffidx * vertcount * 2, vuvdata);
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(buffidx * vertcount));
 
@@ -156,8 +166,8 @@ struct sprites {
 };
 
 void init_sprites(sprites *s) {
-	float hw = (float) g_viewport_width * 0.5;
-	float hh = (float) g_viewport_height * 0.5;
+	float hw = (float)g_viewport_width * 0.5;
+	float hh = (float)g_viewport_height * 0.5;
 
 	for (size_t i = 0; i < SPRITE_COUNT; i++) {
 		s->ax[i] = 0;
@@ -192,10 +202,7 @@ vec2 sprite_flee(sprites *s, size_t i, vec2 t) {
 	vec2 f;
 
 	if (i < SPRITE_COUNT) {
-		vec2 desired = {
-			t.x - s->px[i],
-			t.y - s->py[i]
-		};
+		vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
 
 		float d = vec2_get_mag(desired);
 		if (d < flee_distance) {
@@ -217,10 +224,7 @@ vec2 sprite_arrive(sprites *s, size_t i, vec2 t) {
 
 	if (i < SPRITE_COUNT) {
 
-		vec2 desired = {
-			t.x - s->px[i],
-			t.y - s->py[i]
-		};
+		vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
 
 		float speed = SPRITE_MAX_SPEED;
 		float d = vec2_get_mag(desired);
@@ -261,7 +265,6 @@ void update_sprites(sprites *s) {
 		s->vx[i] += s->ax[i];
 		s->vy[i] += s->ay[i];
 
-
 		s->ax[i] = 0;
 		s->ay[i] = 0;
 	}
@@ -274,19 +277,18 @@ void render_sprites(sprites *s) {
 	}
 }
 
-
 void init_buffers() {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
 
-	vposdata = (float*) malloc(vpossize);
+	vposdata = (float *)malloc(vpossize);
 	vposcurr = vposdata;
 
-	vcoldata = (float*) malloc(vcolsize);
+	vcoldata = (float *)malloc(vcolsize);
 	vcolcurr = vcoldata;
 
-	vuvdata = (float*) malloc(vuvsize);
+	vuvdata = (float *)malloc(vuvsize);
 	vuvcurr = vuvdata;
 
 	glGenVertexArrays(1, &vao);
@@ -327,7 +329,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-							 g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -342,7 +344,7 @@ int main() {
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	sprites *s = (sprites*) malloc(sizeof(sprites));
+	sprites *s = (sprites *)malloc(sizeof(sprites));
 	if (NULL == s) {
 		fprintf(stderr, "Couldn't allocate memory for sprites\n");
 		return 1;
@@ -390,14 +392,13 @@ int main() {
 		float vx = dx * 0.01;
 		float vy = dy * 0.01;
 
-			mouse.x += vx;
-			mouse.y += vy;
+		mouse.x += vx;
+		mouse.y += vy;
 
 		if (ax < 1 && ay < 1) {
 			target.x = rand_range(0, g_viewport_width);
 			target.y = rand_range(0, g_viewport_height);
 		}
-
 
 		update_sprites(s);
 		apply_behaviors(s);

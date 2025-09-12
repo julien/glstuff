@@ -1,20 +1,30 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <time.h>
-#include "utils.h"
 
 #define SPRITE_COUNT 1000000
 
 int g_viewport_width = 1024;
 int g_viewport_height = 768;
 
-GLfloat view_matrix[16] = {
-	2.0f / (float) g_viewport_width, 0.0f, 0.0f, 0.0f,
-	0.0f, -2.0f / (float) g_viewport_height, 0.0f, 0.0f,
-	0.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, 0.0f, 0.0f
-};
+GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           -2.0f / (float)g_viewport_height,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           1.0f,
+                           1.0f,
+                           -1.0f,
+                           1.0f,
+                           0.0f,
+                           0.0f};
 
 static const size_t vertcount = 6;
 static float rgba[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -100,9 +110,9 @@ void draw(float x, float y, float w, float h) {
 	vuvcurr[10] = 1;
 	vuvcurr[11] = 0;
 
-	vposcurr = (float*)((char*) vposcurr + (sizeof(float) * 12));
-	vcolcurr = (float*)((char*) vcolcurr + (sizeof(float) * 24));
-	vuvcurr = (float*)((char*) vuvcurr + (sizeof(float) * 12));
+	vposcurr = (float *)((char *)vposcurr + (sizeof(float) * 12));
+	vcolcurr = (float *)((char *)vcolcurr + (sizeof(float) * 24));
+	vuvcurr = (float *)((char *)vuvcurr + (sizeof(float) * 12));
 
 	++buffidx;
 }
@@ -111,15 +121,15 @@ void flush() {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 2, vposdata);
+	                sizeof(float) * buffidx * vertcount * 2, vposdata);
 
 	glBindBuffer(GL_ARRAY_BUFFER, colvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 4, vcoldata);
+	                sizeof(float) * buffidx * vertcount * 4, vcoldata);
 
 	glBindBuffer(GL_ARRAY_BUFFER, uvvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
-		sizeof(float) * buffidx * vertcount * 2, vuvdata);
+	                sizeof(float) * buffidx * vertcount * 2, vuvdata);
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)(buffidx * vertcount));
 
@@ -154,7 +164,7 @@ void init_sprites(sprites *s) {
 		s->cg[i] = rand_range(1, 10) * 0.1f;
 		s->cb[i] = rand_range(1, 10) * 0.1f;
 
-		s->size[i] = 2 + (int) rand_range(0, 2);
+		s->size[i] = 2 + (int)rand_range(0, 2);
 	}
 	s->count = 10000;
 }
@@ -167,7 +177,7 @@ void update_sprites(sprites *s) {
 		dx = gx - s->px[i];
 		dy = gy - s->py[i];
 
-		acc = 80.0f / (dx*dx + dy*dy);
+		acc = 80.0f / (dx * dx + dy * dy);
 
 		ax = acc * dx;
 		ay = acc * dy;
@@ -181,7 +191,6 @@ void update_sprites(sprites *s) {
 		s->vx[i] *= 0.96;
 		s->vy[i] *= 0.96;
 
-
 		if (s->px[i] > g_viewport_width) {
 			s->px[i] = 0;
 		} else if (s->px[i] < 0) {
@@ -193,7 +202,6 @@ void update_sprites(sprites *s) {
 		} else if (s->py[i] < 0) {
 			s->py[i] = g_viewport_height;
 		}
-
 	}
 }
 
@@ -209,13 +217,13 @@ void init_buffers() {
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
 
-	vposdata = (float*) malloc(vpossize);
+	vposdata = (float *)malloc(vpossize);
 	vposcurr = vposdata;
 
-	vcoldata = (float*) malloc(vcolsize);
+	vcoldata = (float *)malloc(vcolsize);
 	vcolcurr = vcoldata;
 
-	vuvdata = (float*) malloc(vuvsize);
+	vuvdata = (float *)malloc(vuvsize);
 	vuvcurr = vuvdata;
 
 	glGenVertexArrays(1, &vao);
@@ -256,7 +264,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-							 g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -271,7 +279,7 @@ int main() {
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	sprites *s = (sprites*) malloc(sizeof(sprites));
+	sprites *s = (sprites *)malloc(sizeof(sprites));
 	if (NULL == s) {
 		fprintf(stderr, "Couldn't allocate memory for sprites\n");
 		return 1;

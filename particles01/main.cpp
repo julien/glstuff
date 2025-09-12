@@ -1,11 +1,11 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <algorithm>
-#include "utils.h"
 
 int g_viewport_width = 1024;
 int g_viewport_height = 768;
@@ -49,7 +49,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -72,13 +72,12 @@ int main() {
 		particles[i].z = 0.0f;
 	}
 
-	static GLfloat* g_particles_position_size_data = new GLfloat[max_particles * 4]; // x, y, z, w
+	static GLfloat *g_particles_position_size_data =
+	    new GLfloat[max_particles * 4]; // x, y, z, w
 
 	static const GLfloat g_vertex_buffer_data[] = {
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f,
+	    -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f,
+	    -1.0f, 1.0f,  0.0f, 1.0f, 1.0f,  0.0f,
 	};
 
 	GLuint vao;
@@ -88,13 +87,15 @@ int main() {
 	GLuint vertex_vbo;
 	glGenBuffers(1, &vertex_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data),
+	             g_vertex_buffer_data, GL_STATIC_DRAW);
 
 	GLuint position_vbo;
 	glGenBuffers(1, &position_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
 	// initialize with NULL buffer, it will be updated on each frame
-	glBufferData(GL_ARRAY_BUFFER, max_particles * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, max_particles * 4 * sizeof(GLfloat), NULL,
+	             GL_STREAM_DRAW);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
@@ -109,7 +110,8 @@ int main() {
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
-	glfw_framebuffer_size_callback(window, g_viewport_width, g_viewport_height);
+	glfw_framebuffer_size_callback(window, g_viewport_width,
+	                               g_viewport_height);
 
 	while (!glfwWindowShouldClose(window)) {
 		static double previous_seconds = glfwGetTime();
@@ -117,9 +119,9 @@ int main() {
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
 
-		int newparticles = (int) (elapsed_seconds * 10000.0);
-		if (newparticles >= (int) (0.016f*10000.0))
-			newparticles = (int) (0.016f * 10000.0);
+		int newparticles = (int)(elapsed_seconds * 10000.0);
+		if (newparticles >= (int)(0.016f * 10000.0))
+			newparticles = (int)(0.016f * 10000.0);
 
 		for (int i = 0; i < newparticles; i++) {
 			int index = find_free_particle();
@@ -131,7 +133,7 @@ int main() {
 
 		int particles_count = 0;
 		for (int i = 0; i < max_particles; i++) {
-			particle& p = particles[i];
+			particle &p = particles[i];
 
 			if (p.life > 0.0f) {
 				p.x += p.vx;
@@ -148,10 +150,14 @@ int main() {
 					p.y = g_viewport_height;
 				}
 
-				g_particles_position_size_data[4 * particles_count + 0] = p.x;
-				g_particles_position_size_data[4 * particles_count + 1] = p.y;
-				g_particles_position_size_data[4 * particles_count + 2] = p.z;
-				g_particles_position_size_data[4 * particles_count + 3] = p.size;
+				g_particles_position_size_data
+				    [4 * particles_count + 0] = p.x;
+				g_particles_position_size_data
+				    [4 * particles_count + 1] = p.y;
+				g_particles_position_size_data
+				    [4 * particles_count + 2] = p.z;
+				g_particles_position_size_data
+				    [4 * particles_count + 3] = p.size;
 
 				p.life -= 0.01f;
 			} else {
@@ -166,8 +172,12 @@ int main() {
 		}
 
 		glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
-		glBufferData(GL_ARRAY_BUFFER, max_particles * 4 * sizeof(GLfloat), NULL, GL_STREAM_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, particles_count * sizeof(GLfloat) * 4, g_particles_position_size_data);
+		glBufferData(GL_ARRAY_BUFFER,
+		             max_particles * 4 * sizeof(GLfloat), NULL,
+		             GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0,
+		                particles_count * sizeof(GLfloat) * 4,
+		                g_particles_position_size_data);
 
 		int w, h;
 		glfwGetFramebufferSize(window, &w, &h);
@@ -179,11 +189,11 @@ int main() {
 
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glVertexAttribDivisor(0, 0);
 		glVertexAttribDivisor(1, 1);

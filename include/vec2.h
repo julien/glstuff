@@ -15,25 +15,26 @@ void vec2_add(vec2 *v1, vec2 v2) {
 
 float vec2_angle(vec2 v1, vec2 v2) {
 
-	if (v1.x == 0 && v1.y == 0 && v2.x == 0 && v2.y == 0) return 0.0f;
+	if (v1.x == 0 && v1.y == 0 && v2.x == 0 && v2.y == 0)
+		return 0.0f;
 
-	double dot = v1.x*v2.x + v1.y*v2.y;
-	double v1mag = sqrt(v1.x*v1.x + v1.y*v1.y);
-	double v2mag = sqrt(v2.x*v2.x + v2.y*v2.y);
-	double amt = dot / (v1mag*v2mag);
+	double dot = v1.x * v2.x + v1.y * v2.y;
+	double v1mag = sqrt(v1.x * v1.x + v1.y * v1.y);
+	double v2mag = sqrt(v2.x * v2.x + v2.y * v2.y);
+	double amt = dot / (v1mag * v2mag);
 
 	if (amt <= -1) {
 		return M_PI;
 	} else if (amt >= 1) {
 		return 0;
 	}
-	return (float) acos(amt);
+	return (float)acos(amt);
 }
 
 float vec2_dist(vec2 v1, vec2 v2) {
 	float dx = v1.x - v2.x;
 	float dy = v1.y - v2.y;
-	return (float) sqrt(dx*dx + dy*dy);
+	return (float)sqrt(dx * dx + dy * dy);
 }
 
 void vec2_div(vec2 *v, float n) {
@@ -41,30 +42,19 @@ void vec2_div(vec2 *v, float n) {
 	v->y /= n;
 }
 
-float vec2_dot(vec2 v1, vec2 v2) {
-	return v1.x*v2.x + v1.y*v2.y;
-}
+float vec2_dot(vec2 v1, vec2 v2) { return v1.x * v2.x + v1.y * v2.y; }
 
 vec2 vec2_from_angle(float angle) {
-	vec2 v = {
-		(float) cos(angle),
-		(float) sin(angle)
-	};
+	vec2 v = {(float)cos(angle), (float)sin(angle)};
 
 	return v;
 }
 
-float vec2_get_mag(vec2 v) {
-	return (float) sqrt(v.x*v.x + v.y*v.y);
-}
+float vec2_get_mag(vec2 v) { return (float)sqrt(v.x * v.x + v.y * v.y); }
 
-float vec2_get_magsq(vec2 v) {
-	return (v.x*v.x + v.y*v.y);
-}
+float vec2_get_magsq(vec2 v) { return (v.x * v.x + v.y * v.y); }
 
-float vec2_heading(vec2 v) {
-	return (float) atan2(v.x, v.y);
-}
+float vec2_heading(vec2 v) { return (float)atan2(v.x, v.y); }
 
 void vec2_mul(vec2 *v, float n) {
 	v->x *= n;

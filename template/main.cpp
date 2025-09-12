@@ -16,7 +16,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -31,12 +31,11 @@ int main() {
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	const char *frag_src =
-		"#version 410\n"
-		"out vec4 frag_color;"
-		"void main() {"
-		"  frag_color = vec4(1.0, 1.0, 1.0, 1.0);"
-		"}";
+	const char *frag_src = "#version 410\n"
+	                       "out vec4 frag_color;"
+	                       "void main() {"
+	                       "  frag_color = vec4(1.0, 1.0, 1.0, 1.0);"
+	                       "}";
 
 	GLuint frag = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(frag, 1, &frag_src, NULL);
@@ -57,7 +56,8 @@ int main() {
 	params = -1;
 	glGetProgramiv(prog, GL_LINK_STATUS, &params);
 	if (GL_TRUE != params) {
-		fprintf(stderr, "Error: couldn't link shader program %u\n", prog);
+		fprintf(stderr, "Error: couldn't link shader program %u\n",
+		        prog);
 		return -1;
 	}
 
@@ -65,18 +65,14 @@ int main() {
 	glUseProgram(prog);
 
 	GLuint points[] = {
-		-1.0, 1.0,
-		-1.0, 1.0,
-		 1.0, 1.0,
-		-1.0, 1.0,
-		 1.0, 1.0,
-		 1.0, -1.0,
+	    -1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
 	};
 
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * 6, points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * 6, points,
+	             GL_STATIC_DRAW);
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -97,8 +93,8 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-	/* 	glBufferSubData(GL_ARRAY_BUFFER, 0, num_points * sizeof(GLfloat), points); */
+		/* 	glBufferSubData(GL_ARRAY_BUFFER, 0, num_points *
+		 * sizeof(GLfloat), points); */
 
 		glDrawArrays(GL_POINTS, 0, 6);
 

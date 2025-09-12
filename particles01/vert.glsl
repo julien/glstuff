@@ -1,7 +1,7 @@
 #version 410
 
-layout(location=0) in vec3 squareVertices;
-layout(location=1) in vec4 xyzs;
+layout(location = 0) in vec3 squareVertices;
+layout(location = 1) in vec4 xyzs;
 
 uniform vec2 u_resolution;
 uniform float u_time;

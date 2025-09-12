@@ -1,8 +1,8 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <time.h>
-#include "utils.h"
 
 typedef struct vec2 {
 	float x;
@@ -29,10 +29,8 @@ const int particle_uv_size = 10;
 GLfloat mesh_vertices[max_particles * particle_mesh_size];
 
 GLfloat view_matrix[] = {
-	2.0f, 0.0f, 0.0f, -1.0f,
-	0.0f, 2.0f, 0.0f,  1.0f,
-	0.0f, 0.0f, 1.0f,  0.0f,
-	0.0f, 0.0f, 0.0f,  1.0f,
+    2.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 0.0f, 1.0f,
 };
 
 GLint u_matrix = -1;
@@ -130,11 +128,8 @@ void draw_particles() {
 		}
 	}
 
-	glBufferData(
-			GL_ARRAY_BUFFER,
-			max_particles * 30 * sizeof(GLfloat),
-			mesh_vertices,
-			GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, max_particles * 30 * sizeof(GLfloat),
+	             mesh_vertices, GL_DYNAMIC_DRAW);
 	glDrawArrays(GL_TRIANGLES, 0, quads * 6);
 }
 
@@ -150,7 +145,7 @@ int main() {
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -174,8 +169,8 @@ int main() {
 	u_matrix = glGetUniformLocation(sp, "u_matrix");
 	GLint u_image = glGetUniformLocation(sp, "u_image");
 
-	view_matrix[0] *= 1.0f / (float) g_viewport_width;
-	view_matrix[5] *= -1.0f / (float) g_viewport_height;
+	view_matrix[0] *= 1.0f / (float)g_viewport_width;
+	view_matrix[5] *= -1.0f / (float)g_viewport_height;
 
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
@@ -197,7 +192,7 @@ int main() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, NULL);
 	glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*) 12);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void *)12);
 	glEnableVertexAttribArray(1);
 
 	glEnable(GL_BLEND);
@@ -211,9 +206,9 @@ int main() {
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
 
-		int newparticles = (int) (elapsed_seconds * 10000.0);
-		if (newparticles >= (int) (0.016f*1000.0))
-			newparticles = (int) (0.016f * 1000.0);
+		int newparticles = (int)(elapsed_seconds * 10000.0);
+		if (newparticles >= (int)(0.016f * 1000.0))
+			newparticles = (int)(0.016f * 1000.0);
 
 		for (int i = 0; i < newparticles; i++) {
 			int index = find_free_particle();
@@ -225,8 +220,10 @@ int main() {
 			float vx = rand_range(-10, 10);
 			float vy = rand_range(-10, 10);
 
-			float x = (g_viewport_width * 0.5) + rand_range(-10, 10);
-			float y = (g_viewport_height * 0.5) + rand_range(-10, 10);
+			float x =
+			    (g_viewport_width * 0.5) + rand_range(-10, 10);
+			float y =
+			    (g_viewport_height * 0.5) + rand_range(-10, 10);
 
 			particles[index].pos.x = x;
 			particles[index].pos.y = y;

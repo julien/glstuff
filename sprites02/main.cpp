@@ -1,13 +1,13 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <time.h>
 
 #include "utils.h"
@@ -34,22 +34,24 @@ glm::mat4 draw_sprite(glm::vec2 position, glm::vec2 size, GLfloat rotate) {
 
 	model = glm::translate(model, glm::vec3(position, 1.0f));
 
-	model = glm::translate(model, glm::vec3(0.5 * size.x, 0.5f * size.y, 0.0));
+	model =
+	    glm::translate(model, glm::vec3(0.5 * size.x, 0.5f * size.y, 0.0));
 	model = glm::rotate(model, rotate, glm::vec3(0.0f, 0.0f, 1.0f));
-	model = glm::translate(model, glm::vec3(-0.5 * size.x, -0.5f * size.y, 0.0));
+	model = glm::translate(model,
+	                       glm::vec3(-0.5 * size.x, -0.5f * size.y, 0.0));
 
 	model = glm::scale(model, glm::vec3(size, 1.0f));
 	return model;
 }
 
 int get_free_sprite() {
-	for ( int i = free_sprite; i < MAX_SPRITES; i++)  {
+	for (int i = free_sprite; i < MAX_SPRITES; i++) {
 		if (sprites[i].life < 0) {
 			free_sprite = i;
 			return i;
 		}
 	}
-	for ( int i = 0; i < free_sprite; i++)  {
+	for (int i = 0; i < free_sprite; i++) {
 		if (sprites[i].life < 0) {
 			free_sprite = i;
 			return i;
@@ -69,7 +71,7 @@ int main() {
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -90,17 +92,19 @@ int main() {
 	GLuint u_model = glGetUniformLocation(sp, "u_model");
 	GLuint u_projection = glGetUniformLocation(sp, "u_projection");
 
-	glm::mat4 projection = glm::ortho(0.0f,
-			(float) g_viewport_width, (float) g_viewport_height,
-			0.0f, -1.0f, 0.0f);
+	glm::mat4 projection =
+	    glm::ortho(0.0f, (float)g_viewport_width, (float)g_viewport_height,
+	               0.0f, -1.0f, 0.0f);
 
-	glUniformMatrix4fv(u_projection, 1, GL_FALSE, (const float*) glm::value_ptr(projection));
+	glUniformMatrix4fv(u_projection, 1, GL_FALSE,
+	                   (const float *)glm::value_ptr(projection));
 
 	for (int i = 0; i < MAX_SPRITES; i++) {
-		sprites[i].position = glm::vec2(
-			((float) g_viewport_width * 0.5) + rand_range(-200.0f, 200.0f),
-			((float) g_viewport_height * 0.5) + rand_range(-200.0f, 200.0f)
-	);
+		sprites[i].position =
+		    glm::vec2(((float)g_viewport_width * 0.5) +
+		                  rand_range(-200.0f, 200.0f),
+		              ((float)g_viewport_height * 0.5) +
+		                  rand_range(-200.0f, 200.0f));
 
 		sprites[i].rotation = rand_range(-3, 3);
 
@@ -109,12 +113,7 @@ int main() {
 		sprites[i].life = 1.0f;
 	}
 
-
-	GLfloat vertices[6] = {
-		 0.0, -1.0,
-		-1.0,  1.0,
-		 1.0,  1.0
-	};
+	GLfloat vertices[6] = {0.0, -1.0, -1.0, 1.0, 1.0, 1.0};
 
 	GLuint vao;
 	GLuint vbo;
@@ -123,11 +122,13 @@ int main() {
 	glGenBuffers(1, &vbo);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+	             GL_STATIC_DRAW);
 
 	glBindVertexArray(vao);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid*) 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),
+	                      (GLvoid *)0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -155,8 +156,10 @@ int main() {
 				sprites[i].position += 1.0f;
 
 				int t = (sprites[i].size.y * 0.5f) * -1.0f;
-				int r = g_viewport_width + (sprites[i].size.x * 0.5f);
-				int b = g_viewport_height + (sprites[i].size.y * 0.5f);
+				int r = g_viewport_width +
+				        (sprites[i].size.x * 0.5f);
+				int b = g_viewport_height +
+				        (sprites[i].size.y * 0.5f);
 				int l = (sprites[i].size.x * 0.5f) * -1.0f;
 
 				if (sprites[i].position.x > r) {
@@ -172,8 +175,12 @@ int main() {
 					sprites[i].position.y = b;
 				}
 
-				glm::mat4 model = draw_sprite(sprites[i].position, sprites[i].size, sprites[i].rotation);
-				glUniformMatrix4fv(u_model, 1, GL_FALSE, (const float*) glm::value_ptr(model));
+				glm::mat4 model = draw_sprite(
+				    sprites[i].position, sprites[i].size,
+				    sprites[i].rotation);
+				glUniformMatrix4fv(
+				    u_model, 1, GL_FALSE,
+				    (const float *)glm::value_ptr(model));
 
 				glBindVertexArray(vao);
 				glDrawArrays(GL_TRIANGLES, 0, 3);

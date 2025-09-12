@@ -1,8 +1,8 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <time.h>
-#include "utils.h"
 
 struct sprite {
 	float ax;
@@ -24,12 +24,22 @@ unsigned int freesprite = 0;
 unsigned int spritecount = 0;
 sprite sprites[MAX_SPRITES];
 GLfloat vpos_data[MAX_SPRITES * SPRITE_MESH_SIZE];
-GLfloat view_matrix[16] = {
-	2.0f / (float) g_viewport_width, 0.0f, 0.0f, 0.0f,
-    0.0f, -2.0f / (float) g_viewport_height, 0.0f, 0.0f,
-    0.0f, 0.0f, 1.0f, 1.0f,
-   -1.0f, 1.0f, 0.0f, 0.0f
-};
+GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           -2.0f / (float)g_viewport_height,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           0.0f,
+                           1.0f,
+                           1.0f,
+                           -1.0f,
+                           1.0f,
+                           0.0f,
+                           0.0f};
 const float delta = 0.05;
 const float grav = 3.0;
 GLfloat mat[] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
@@ -37,8 +47,8 @@ GLfloat mat[] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
 void setup_sprites() {
 	for (size_t i = 0; i < MAX_SPRITES; i++) {
 		sprite *s = &(sprites[i]);
-		float w = (float) (g_viewport_width * 0.5);
-		float h = (float) (g_viewport_height * 0.5);
+		float w = (float)(g_viewport_width * 0.5);
+		float h = (float)(g_viewport_height * 0.5);
 		float x = w + rand_range(-10, 10);
 		float y = h + rand_range(-10, 10);
 		s->ax = 0;
@@ -111,8 +121,8 @@ void draw_rect(float x, float y, float w, float h) {
 
 	if (++spritecount >= MAX_SPRITES) {
 		glBufferData(GL_ARRAY_BUFFER,
-				spritecount * SPRITE_MESH_SIZE * sizeof (GLfloat),
-				vpos_data, GL_DYNAMIC_DRAW);
+		             spritecount * SPRITE_MESH_SIZE * sizeof(GLfloat),
+		             vpos_data, GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_TRIANGLES, 0, spritecount * 6);
 		spritecount = 0;
 	}
@@ -129,7 +139,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -190,14 +200,19 @@ int main() {
 
 				sprites[i].life--;
 
-				draw_rect(sprites[i].x, sprites[i].y, sprites[i].size, sprites[i].size);
+				draw_rect(sprites[i].x, sprites[i].y,
+				          sprites[i].size, sprites[i].size);
 
 			} else {
-				float size = SPRITE_SIZE + rand_range(SPRITE_SIZE * 0.5, SPRITE_SIZE);
+				float size =
+				    SPRITE_SIZE +
+				    rand_range(SPRITE_SIZE * 0.5, SPRITE_SIZE);
 				float vx = rand_range(-2, 2);
 				float vy = rand_range(-2, 2);
-				float x = (g_viewport_width * 0.5) + rand_range(-20, 20);
-				float y = (g_viewport_height * 0.5) + rand_range(-20, 20);
+				float x = (g_viewport_width * 0.5) +
+				          rand_range(-20, 20);
+				float y = (g_viewport_height * 0.5) +
+				          rand_range(-20, 20);
 				sprites[i].life = rand_range(100, 200);
 				sprites[i].size = size;
 				sprites[i].vx = vx;
@@ -208,8 +223,9 @@ int main() {
 		}
 
 		glBufferSubData(GL_ARRAY_BUFFER, 0,
-				spritecount * SPRITE_MESH_SIZE * sizeof(GLfloat),
-				vpos_data);
+		                spritecount * SPRITE_MESH_SIZE *
+		                    sizeof(GLfloat),
+		                vpos_data);
 		glDrawArrays(GL_TRIANGLES, 0, spritecount * 6);
 
 		glfwPollEvents();

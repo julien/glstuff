@@ -10,11 +10,11 @@ typedef struct vec2 {
 } vec2;
 
 class Particle {
-public:
-	Particle():life(0) {}
+      public:
+	Particle() : life(0) {}
 
-	void init(float x, float y, float w, float h,
-			  float vx, float vy, float l) {
+	void init(float x, float y, float w, float h, float vx, float vy,
+	          float l) {
 		life = l;
 
 		pos.x = x;
@@ -30,9 +30,7 @@ public:
 		acc.y = 0;
 	}
 
-	bool in_use() const {
-		return life > 0;
-	}
+	bool in_use() const { return life > 0; }
 
 	bool update() {
 		if (!in_use()) {
@@ -61,24 +59,15 @@ public:
 		return life < 0;
 	}
 
-	Particle *get_next() const {
-		return _next;
-	}
+	Particle *get_next() const { return _next; }
 
-	void set_next(Particle *next) {
-		_next = next;
-	}
+	void set_next(Particle *next) { _next = next; }
 
-	vec2 get_pos() const {
-		return pos;
-	}
+	vec2 get_pos() const { return pos; }
 
-	vec2 get_size() const {
-		return size;
-	}
+	vec2 get_size() const { return size; }
 
-
-private:
+      private:
 	Particle *_next;
 	float life;
 	vec2 pos;
@@ -88,7 +77,7 @@ private:
 };
 
 class ParticlePool {
-public:
+      public:
 	ParticlePool() {
 		first_available = &particles[0];
 
@@ -98,8 +87,8 @@ public:
 		particles[POOL_SIZE - 1].set_next(NULL);
 	}
 
-	void create(float x, float y, float w, float h,
-				 float vx, float vy, float life) {
+	void create(float x, float y, float w, float h, float vx, float vy,
+	            float life) {
 
 		if (first_available == NULL) {
 			return;
@@ -182,11 +171,9 @@ public:
 		return quads * 6;
 	}
 
-	inline const float *get_vertices() const {
-		return vertices;
-	}
+	inline const float *get_vertices() const { return vertices; }
 
-private:
+      private:
 	Particle *first_available;
 	static const int POOL_SIZE = MAX_PARTICLES;
 	Particle particles[POOL_SIZE];

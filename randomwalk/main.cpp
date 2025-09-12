@@ -1,10 +1,10 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "utils.h"
 
 int g_viewport_width = 1024;
 int g_viewport_height = 768;
@@ -30,7 +30,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -47,21 +47,22 @@ int main() {
 	glewInit();
 
 	particle p = {
-		(float)g_viewport_width * 0.5f,
-		(float)g_viewport_height * 0.5f,
-		(float)g_viewport_width,
-		(float)g_viewport_height,
-		(float)rand_range(-2, 2),
-		(float)rand_range(-2, 2),
-		100.0f,
+	    (float)g_viewport_width * 0.5f,
+	    (float)g_viewport_height * 0.5f,
+	    (float)g_viewport_width,
+	    (float)g_viewport_height,
+	    (float)rand_range(-2, 2),
+	    (float)rand_range(-2, 2),
+	    100.0f,
 	};
 
 	size_t num_points = 1;
 	size_t point_size = 2;
 	size_t points_length = num_points * point_size;
-	GLfloat *points = (float*) malloc(sizeof(float) * points_length);
+	GLfloat *points = (float *)malloc(sizeof(float) * points_length);
 	if (points == NULL) {
-		fprintf(stderr, "ERROR: Could not allocate memory for points\n");
+		fprintf(stderr,
+		        "ERROR: Could not allocate memory for points\n");
 		return 1;
 	}
 
@@ -71,7 +72,8 @@ int main() {
 	GLuint vp_vbo;
 	glGenBuffers(1, &vp_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vp_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * num_points, points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * num_points, points,
+	             GL_STATIC_DRAW);
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -96,7 +98,8 @@ int main() {
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
-	glfw_framebuffer_size_callback(window, g_viewport_width, g_viewport_height);
+	glfw_framebuffer_size_callback(window, g_viewport_width,
+	                               g_viewport_height);
 
 	while (!glfwWindowShouldClose(window)) {
 		static double previous_seconds = glfwGetTime();
@@ -123,9 +126,12 @@ int main() {
 		int old_length = (num_points * point_size);
 		int new_length = old_length + point_size;
 
-		points = (float*) realloc(points, sizeof(float) * new_length);
+		points = (float *)realloc(points, sizeof(float) * new_length);
 		if (points == NULL) {
-			fprintf(stderr, "ERROR: Could not reallocate memory for %d points\n", new_length);
+			fprintf(stderr,
+			        "ERROR: Could not reallocate memory for %d "
+			        "points\n",
+			        new_length);
 			exit(1);
 		}
 
@@ -141,7 +147,8 @@ int main() {
 		glUniform2f(u_resolution, g_viewport_width, g_viewport_height);
 		glUniform1f(u_time, previous_seconds);
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(points) * num_points, points, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(points) * num_points,
+		             points, GL_STATIC_DRAW);
 		glBindVertexArray(vao);
 		glDrawArrays(GL_POINTS, 0, num_points);
 

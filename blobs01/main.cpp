@@ -1,11 +1,11 @@
+#include "utils.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <math.h>
 #include <cmath>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "utils.h"
 
 struct blob {
 	float x, y, r;
@@ -25,7 +25,7 @@ const int num_points = max_points * point_size;
 float *points = NULL;
 
 blob *create_blobs() {
-	blob *blobs = (blob*) malloc(sizeof(blob) * max_blobs);
+	blob *blobs = (blob *)malloc(sizeof(blob) * max_blobs);
 	if (blobs == NULL) {
 		fprintf(stderr, "Couln't allocate memory for blobs\n");
 		return NULL;
@@ -79,7 +79,7 @@ void update_blobs(blob *bs) {
 }
 
 void create_points() {
-	points = (float*) malloc(sizeof(float) * num_points);
+	points = (float *)malloc(sizeof(float) * num_points);
 	if (points == NULL) {
 		fprintf(stderr, "Couln't allocate memory for points\n");
 		return;
@@ -87,30 +87,30 @@ void create_points() {
 
 	for (int i = 0; i < num_points; i += point_size) {
 		// position
-		points[i]   = rand_range(-10, 10) * 0.1;
-		points[i+1] = rand_range(-10, 10) * 0.1;
+		points[i] = rand_range(-10, 10) * 0.1;
+		points[i + 1] = rand_range(-10, 10) * 0.1;
 
 		// pointsize
-		points[i+2] = (10 + rand() % 80) * 0.1;
+		points[i + 2] = (10 + rand() % 80) * 0.1;
 
 		// vx,vy
-		points[i+3] = rand_range(-3, 3) * 0.0001;
-		points[i+4] = rand_range(-3, 3) * 0.0001;
+		points[i + 3] = rand_range(-3, 3) * 0.0001;
+		points[i + 4] = rand_range(-3, 3) * 0.0001;
 		// ax,ay
-		points[i+5] = rand_range(-2, -9) * 0.1;
-		points[i+6] = rand_range(-2, -9) * 0.1;
+		points[i + 5] = rand_range(-2, -9) * 0.1;
+		points[i + 6] = rand_range(-2, -9) * 0.1;
 	}
 }
 
 void update_points() {
 	for (int i = 0; i < num_points; i += point_size) {
 		float x = points[i];
-		float y = points[i+1];
-		float r = points[i+2];
-		float vx = points[i+3];
-		float vy = points[i+4];
-		float ax = points[i+5];
-		float ay = points[i+6];
+		float y = points[i + 1];
+		float r = points[i + 2];
+		float vx = points[i + 3];
+		float vy = points[i + 4];
+		float ax = points[i + 5];
+		float ay = points[i + 6];
 
 		// velocity += acceleration
 		vx += ax;
@@ -122,9 +122,9 @@ void update_points() {
 
 		for (int k = 0; k < max_blobs; k++) {
 			blob b = blobs[k];
-			float dx = (x) - b.x;
-			float dy = (y) - b.y;
-			float dist = sqrt(dx*dx + dy*dy);
+			float dx = (x)-b.x;
+			float dy = (y)-b.y;
+			float dist = sqrt(dx * dx + dy * dy);
 
 			if (dist < b.r) {
 				x = b.x + dx / dist * b.r;
@@ -148,9 +148,9 @@ void update_points() {
 			y = 1.0;
 		}
 
-		points[i] =   x;
-		points[i+1] = y;
-		points[i+2] = r;
+		points[i] = x;
+		points[i + 1] = y;
+		points[i + 2] = r;
 	}
 }
 
@@ -165,7 +165,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-			g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
@@ -189,7 +189,8 @@ int main() {
 	GLuint vp_vbo;
 	glGenBuffers(1, &vp_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vp_vbo);
-	glBufferData(GL_ARRAY_BUFFER, num_points * sizeof(GLfloat), points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, num_points * sizeof(GLfloat), points,
+	             GL_STATIC_DRAW);
 
 	int fsize = sizeof(float);
 	int stride = fsize * point_size;
@@ -200,8 +201,8 @@ int main() {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, NULL);
 	glEnableVertexAttribArray(0);
 
-	                                                         // (sizeof(float) * 2 == 2 * 4)
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, stride, (void*) 8);
+	// (sizeof(float) * 2 == 2 * 4)
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, stride, (void *)8);
 	glEnableVertexAttribArray(1);
 
 	glUseProgram(sp);
@@ -223,7 +224,8 @@ int main() {
 		update_blobs(blobs);
 		update_points();
 
-		glBufferSubData(GL_ARRAY_BUFFER, 0, num_points * sizeof(GLfloat), points);
+		glBufferSubData(GL_ARRAY_BUFFER, 0,
+		                num_points * sizeof(GLfloat), points);
 
 		glDrawArrays(GL_POINTS, 0, max_points);
 
@@ -234,8 +236,10 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 
-	if (blobs != NULL) free(blobs);
-	if (points != NULL) free(points);
+	if (blobs != NULL)
+		free(blobs);
+	if (points != NULL)
+		free(points);
 
 	glfwTerminate();
 	return 0;
