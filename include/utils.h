@@ -9,9 +9,6 @@
 
 #define MAX_SHADER_LENGTH 262144
 
-extern int g_viewport_width;
-extern int g_viewport_height;
-
 float rand_range(float min, float max) {
 	return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
@@ -25,9 +22,12 @@ float lerp(float norm, float min, float max) {
 }
 
 float map(float val, float srcmin, float srcmax, float dstmin, float dstmax) {
-
 	return lerp(norm(val, srcmin, srcmax), dstmin, dstmax);
 }
+
+/* close your eyes for a few seconds */
+extern int g_viewport_width;
+extern int g_viewport_height;
 
 void glfw_framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 	g_viewport_width = width;
@@ -102,7 +102,6 @@ void print_infolog(GLuint index) {
 }
 
 int file_to_str(const char *file_name, char *shader_str, int max_len) {
-
 	FILE *file = fopen(file_name, "r");
 	if (!file) {
 		fprintf(stderr, "Error openining file: %s\n", file_name);
@@ -149,7 +148,6 @@ int create_shader(const char *file_name, GLuint *shader, GLenum type) {
 }
 
 GLuint create_program(const char *vert_src, const char *frag_src) {
-
 	GLuint vert, frag;
 	create_shader(vert_src, &vert, GL_VERTEX_SHADER);
 	create_shader(frag_src, &frag, GL_FRAGMENT_SHADER);
