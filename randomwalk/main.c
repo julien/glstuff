@@ -1,13 +1,13 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <math.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
 
 struct particle {
 	float x;
@@ -19,7 +19,15 @@ struct particle {
 	float life;
 };
 
-int main() {
+const unsigned int WIDTH = 1024;
+const unsigned int HEIGHT = 800;
+
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
+
+int main(void) {
 	srand(time(NULL));
 
 	glfwInit();
@@ -29,28 +37,25 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int x = (int)((mode->width - g_viewport_width) * 0.5);
-	int y = (int)((mode->height - g_viewport_height) * 0.5);
+	int x = (int)((mode->width - WIDTH) * 0.5);
+	int y = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, x, y);
-
-	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
-
-	particle p = {
-	    (float)g_viewport_width * 0.5f,
-	    (float)g_viewport_height * 0.5f,
-	    (float)g_viewport_width,
-	    (float)g_viewport_height,
+	struct particle p = {
+	    (float)WIDTH * 0.5f,
+	    (float)HEIGHT * 0.5f,
+	    (float)WIDTH,
+	    (float)HEIGHT,
 	    (float)rand_range(-2, 2),
 	    (float)rand_range(-2, 2),
 	    100.0f,
@@ -89,7 +94,7 @@ int main() {
 	GLint u_time = glGetUniformLocation(sp, "u_time");
 	GLint u_pointsize = glGetUniformLocation(sp, "u_pointsize");
 
-	glUniform2f(u_resolution, g_viewport_width, g_viewport_height);
+	glUniform2f(u_resolution, WIDTH, HEIGHT);
 	glUniform1f(u_pointsize, 4.0f);
 
 	glEnable(GL_PROGRAM_POINT_SIZE);
@@ -98,11 +103,10 @@ int main() {
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
-	glfw_framebuffer_size_callback(window, g_viewport_width,
-	                               g_viewport_height);
+	size_callback(window, WIDTH, HEIGHT);
 
+	double previous_seconds = glfwGetTime();
 	while (!glfwWindowShouldClose(window)) {
-		static double previous_seconds = glfwGetTime();
 		double current_seconds = glfwGetTime();
 		previous_seconds = current_seconds;
 
@@ -144,7 +148,7 @@ int main() {
 		glViewport(0, 0, w, h);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glUniform2f(u_resolution, g_viewport_width, g_viewport_height);
+		glUniform2f(u_resolution, WIDTH, HEIGHT);
 		glUniform1f(u_time, previous_seconds);
 
 		glBufferData(GL_ARRAY_BUFFER, sizeof(points) * num_points,
