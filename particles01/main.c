@@ -1,0 +1,223 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+#include "utils.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define WIDTH 800
+#define HEIGHT 800
+
+struct particle {
+	float x;
+	float y;
+	float z;
+	float vx;
+	float vy;
+	float size;
+	float life;
+};
+
+const int max_particles = 50000;
+int last_used_particle = 0;
+struct particle particles[max_particles] = {0};
+
+int find_free_particle(void) {
+	for (int i = last_used_particle; i < max_particles; i++) {
+		if (particles[i].life < 0) {
+			last_used_particle = i;
+			return i;
+		}
+	}
+
+	for (int i = 0; i < last_used_particle; i++) {
+		if (particles[i].life < 0) {
+			last_used_particle = i;
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
+
+int main(void) {
+	srand(time(NULL));
+
+	glfwInit();
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+
+	GLFWmonitor *mon = glfwGetPrimaryMonitor();
+	const GLFWvidmode *mode = glfwGetVideoMode(mon);
+
+	int x = (int)((mode->width - WIDTH) * 0.5);
+	int y = (int)((mode->height - HEIGHT) * 0.5);
+
+	glfwSetWindowPos(window, x, y);
+	glfwSetFramebufferSizeCallback(window, size_callback);
+	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
+
+	for (int i = 0; i < max_particles; i++) {
+		struct particle p = {
+		    .life = -1.0f,
+		    .x = rand_range(0, WIDTH),
+		    .y = rand_range(0, HEIGHT),
+		    .z = 0.0f,
+		};
+		particles[i] = p;
+	}
+
+	static GLfloat g_particles_position_size_data[max_particles * 4] = {
+	    0}; // x, y, z, w
+
+	static const GLfloat g_vertex_buffer_data[] = {
+	    -1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f,
+	    -1.0f, 1.0f,  0.0f, 1.0f, 1.0f,  0.0f,
+	};
+
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	GLuint vertex_vbo;
+	glGenBuffers(1, &vertex_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data),
+	             g_vertex_buffer_data, GL_STATIC_DRAW);
+
+	GLuint position_vbo;
+	glGenBuffers(1, &position_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+	// initialize with NULL buffer, it will be updated on each frame
+	glBufferData(GL_ARRAY_BUFFER, max_particles * 4 * sizeof(GLfloat), NULL,
+	             GL_STREAM_DRAW);
+
+	GLuint sp = create_program("vert.glsl", "frag.glsl");
+	glUseProgram(sp);
+
+	GLint u_resolution = glGetUniformLocation(sp, "u_resolution");
+	GLint u_time = glGetUniformLocation(sp, "u_time");
+
+	glUniform2f(u_resolution, WIDTH, HEIGHT);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	size_callback(window, WIDTH, HEIGHT);
+	double previous_seconds = glfwGetTime();
+
+	while (!glfwWindowShouldClose(window)) {
+		double current_seconds = glfwGetTime();
+		double elapsed_seconds = current_seconds - previous_seconds;
+		previous_seconds = current_seconds;
+
+		int newparticles = (int)(elapsed_seconds * 10000.0);
+		if (newparticles >= (int)(0.016f * 10000.0))
+			newparticles = (int)(0.016f * 10000.0);
+
+		for (int i = 0; i < newparticles; i++) {
+			int index = find_free_particle();
+			if (index == -1)
+				continue;
+			particles[index].vx = rand_range(-2.0f, 2.0f);
+			particles[index].vy = rand_range(-2.0f, 2.0f);
+			particles[index].life = rand_range(0, 100);
+			particles[index].size = 1.0f;
+		}
+
+		int particles_count = 0;
+		for (int i = 0; i < max_particles; i++) {
+			struct particle *p = &particles[i];
+
+			if (p->life > 0.0f) {
+				p->life -= elapsed_seconds * 60.f;
+				if (p->life > 0.0f) {
+					p->x += p->vx;
+					p->y += p->vy;
+
+					if (p->x > WIDTH) {
+						p->x = 0;
+					} else if (p->x < 0) {
+						p->x = WIDTH;
+					}
+					if (p->y > HEIGHT) {
+						p->y = 0;
+					} else if (p->y < 0) {
+						p->y = HEIGHT;
+					}
+
+					g_particles_position_size_data
+					    [4 * particles_count + 0] = p->x;
+					g_particles_position_size_data
+					    [4 * particles_count + 1] = p->y;
+					g_particles_position_size_data
+					    [4 * particles_count + 2] = p->z;
+					g_particles_position_size_data
+					    [4 * particles_count + 3] = p->size;
+					particles_count++;
+				}
+			}
+		}
+
+		glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+		glBufferData(GL_ARRAY_BUFFER,
+		             max_particles * 4 * sizeof(GLfloat), NULL,
+		             GL_STREAM_DRAW);
+		glBufferSubData(GL_ARRAY_BUFFER, 0,
+		                particles_count * sizeof(GLfloat) * 4,
+		                g_particles_position_size_data);
+
+		int w, h;
+		glfwGetFramebufferSize(window, &w, &h);
+		glViewport(0, 0, w, h);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUniform2f(u_resolution, WIDTH, HEIGHT);
+		glUniform1f(u_time, previous_seconds);
+
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, position_vbo);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+		glVertexAttribDivisor(0, 0);
+		glVertexAttribDivisor(1, 1);
+
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, particles_count);
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+
+		glfwPollEvents();
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+			glfwSetWindowShouldClose(window, 1);
+		}
+		glfwSwapBuffers(window);
+	}
+
+	glDisable(GL_PROGRAM_POINT_SIZE);
+
+	glfwTerminate();
+	return 0;
+}
