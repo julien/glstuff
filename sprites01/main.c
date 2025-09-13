@@ -1,22 +1,27 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #include "sprite.h"
 #include "utils.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include <stdio.h>
 #include <time.h>
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
-SpritePool *sprites;
-
+int WIDTH = 1024;
+int HEIGHT = 768;
 GLfloat view_matrix[] = {
     2.0f, 0.0f, 0.0f, -1.0f, 0.0f, 2.0f, 0.0f, 1.0f,
     0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 0.0f, 1.0f,
 };
 
-GLint u_matrix = -1;
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
 	glfwInit();
@@ -27,33 +32,36 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-
-	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
+	struct spritepool *sprites = malloc(sizeof(struct spritepool));
+	if (!sprites) {
+		fprintf(stderr, "cloudn't allocate memory for sprites");
+		exit(1);
+	}
 
-	sprites = new SpritePool();
+	spritepool_init(sprites);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
 
-	u_matrix = glGetUniformLocation(sp, "u_matrix");
+	GLint u_matrix = u_matrix = glGetUniformLocation(sp, "u_matrix");
 	GLint u_image = glGetUniformLocation(sp, "u_image");
 
-	view_matrix[0] *= 1.0f / (float)g_viewport_width;
-	view_matrix[5] *= -1.0f / (float)g_viewport_height;
+	view_matrix[0] *= 1.0f / (float)WIDTH;
+	view_matrix[5] *= -1.0f / (float)HEIGHT;
 
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
@@ -83,8 +91,9 @@ int main() {
 
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 
+	double previous_seconds = glfwGetTime();
+
 	while (!glfwWindowShouldClose(window)) {
-		static double previous_seconds = glfwGetTime();
 		double current_seconds = glfwGetTime();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
@@ -94,17 +103,14 @@ int main() {
 			newsprites = 5;
 
 		for (int i = 0; i < newsprites; i++) {
-
-			float x =
-			    (g_viewport_width * 0.5) + rand_range(-60, 60);
-			float y =
-			    (g_viewport_height * 0.5) + rand_range(-60, 60);
-
+			float x = (WIDTH * 0.5) + rand_range(-60, 60);
+			float y = (HEIGHT * 0.5) + rand_range(-60, 60);
 			float size = 8 + rand_range(8, 12);
 			float vx = rand_range(-2, 2);
 			float vy = rand_range(-2, 2);
 
-			sprites->create(x, y, size, size, vx, vy, 100);
+			spritepool_create(sprites, x, y, size, size, vx, vy,
+			                  100);
 		}
 
 		int w, h;
@@ -113,13 +119,13 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		sprites->update();
+		spritepool_update(sprites);
 
-		int quads = sprites->draw();
+		int quads = spritepool_draw(sprites);
 
 		glBufferData(GL_ARRAY_BUFFER,
 		             MAX_SPRITES * 30 * sizeof(GLfloat),
-		             sprites->get_vertices(), GL_DYNAMIC_DRAW);
+		             sprites->vertices, GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_TRIANGLES, 0, quads);
 
 		glfwPollEvents();
@@ -128,8 +134,6 @@ int main() {
 		}
 		glfwSwapBuffers(window);
 	}
-
-	delete sprites;
 
 	glfwTerminate();
 	return 0;

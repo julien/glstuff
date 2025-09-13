@@ -1,231 +1,203 @@
 #ifndef __SPRITE_H__
 #define __SPRITE_H__
 
-#include <cmath>
 #include <math.h>
 #include <stdio.h>
 
-const unsigned int MAX_SPRITES = 10000;
+const int MAX_SPRITES = 10000;
 const int SPRITE_MESH_SIZE = 30;
 
-typedef struct vec2 {
+struct vec2 {
 	float x;
 	float y;
-} vec2;
+};
 
-class Sprite {
-      public:
-	Sprite() : life(0) {}
-
-	void init(float x, float y, float w, float h, float vx, float vy,
-	          float l) {
-		life = l;
-		pos.x = x;
-		pos.y = y;
-		size.x = w;
-		size.y = h;
-		o_size.x = size.x;
-		o_size.y = size.y;
-		vel.x = vx;
-		vel.y = vy;
-	}
-
-	bool in_use() const { return life > 0; }
-
-	bool update(Sprite *sprites) {
-		if (!in_use()) {
-			return true;
-		}
-
-		float fact = 0.05f;
-		float force = 2.0f;
-
-		Sprite p1 = sprites[magnet_next];
-		Sprite p2 = sprites[magnet_prev];
-
-		float dx1 = p1.pos.x - pos.x;
-		float dx2 = p2.pos.x - pos.x;
-		float dy1 = p1.pos.y - pos.y;
-		float dy2 = p2.pos.y - pos.y;
-
-		float fx = fact * force * std::abs(dx1) / (dx1)*pow(dx1, 2) /
-		           (pow(dy1, 2) + pow(dx1, 2));
-
-		float fy = fact * force * std::abs(dy1) / (dy1)*pow(dy1, 2) /
-		           (pow(dy1, 2) + pow(dx1, 2));
-
-		float rx = fact * force * std::abs(dx2) / (dx2)*pow(dx2, 2) /
-		           (pow(dy2, 2) + pow(dx2, 2));
-
-		float ry = fact * force * std::abs(dy2) / (dy2)*pow(dy2, 2) /
-		           (pow(dy2, 2) + pow(dx2, 2));
-
-		vel.x += (4 * fx - rx) * 4 / pow(life, 0.01);
-		vel.y += (4 * fy - ry) * 4 / pow(life, 0.01);
-
-		pos.x += vel.x * 0.1;
-		pos.y += vel.y * 0.09;
-
-		float s = map(life, 0, 100, 0, o_size.x);
-		size.x = size.y = s;
-
-		life--;
-
-		return life < 0;
-	}
-
-	float get_life() const { return life; }
-
-	Sprite *get_next() const { return _next; }
-
-	vec2 get_pos() const { return pos; }
-
-	vec2 get_size() const { return size; }
-
-	void set_index(int i) { index = i; }
-
-	void set_magnet(int next, int prev) {
-		magnet_next = next;
-		magnet_prev = prev;
-	}
-
-	void set_next(Sprite *next) { _next = next; }
-
-      private:
-	Sprite *_next;
+struct sprite {
+	struct sprite *next;
+	struct vec2 pos;
+	struct vec2 vel;
+	struct vec2 size;
+	struct vec2 o_size;
 	float life;
-	vec2 pos;
-	vec2 vel;
-	vec2 size;
-	vec2 o_size;
 	int magnet_next;
 	int magnet_prev;
 	int index;
 };
 
-class SpritePool {
-      public:
-	SpritePool() {
-		first_available = &sprites[0];
+static inline void sprite_init(struct sprite *s, float x, float y, float w,
+                               float h, float vx, float vy, float l) {
+	s->life = l;
+	s->pos.x = x;
+	s->pos.y = y;
+	s->size.x = w;
+	s->size.y = h;
+	s->o_size.x = w;
+	s->o_size.y = h;
+	s->vel.x = vx;
+	s->vel.y = vy;
+}
 
-		int magnet_next;
-		int magnet_prev;
+static inline int sprite_in_use(struct sprite *s) { return s->life > 0; }
 
-		for (int i = 0; i < POOL_SIZE; i++) {
-
-			magnet_next = (i + 1) % POOL_SIZE;
-			magnet_prev = (i + 2) % POOL_SIZE;
-
-			sprites[i].set_index(i);
-			sprites[i].set_magnet(magnet_next, magnet_prev);
-			sprites[i].set_next(&sprites[i + 1]);
-		}
-
-		sprites[POOL_SIZE - 1].set_next(NULL);
+static inline int sprite_update(struct sprite *s, struct sprite *sprites) {
+	if (!sprite_in_use(s)) {
+		return 1;
 	}
 
-	Sprite *at(unsigned int idx) {
-		if (idx < POOL_SIZE) {
-			return &(sprites[idx]);
-		} else {
-			return NULL;
-		}
-	}
+	float fact = 0.05f;
+	float force = 2.0f;
 
-	void create(float x, float y, float w, float h, float vx, float vy,
-	            float life) {
+	struct sprite p1 = sprites[s->magnet_next];
+	struct sprite p2 = sprites[s->magnet_prev];
 
-		if (first_available == NULL) {
-			return;
-		}
+	float dx1 = p1.pos.x - s->pos.x;
+	float dx2 = p2.pos.x - s->pos.x;
+	float dy1 = p1.pos.y - s->pos.y;
+	float dy2 = p2.pos.y - s->pos.y;
 
-		Sprite *new_sprite = first_available;
+	float fx = fact * force * fabsf(dx1) / (dx1)*pow(dx1, 2) /
+	           (pow(dy1, 2) + pow(dx1, 2));
 
-		first_available = new_sprite->get_next();
+	float fy = fact * force * fabsf(dy1) / (dy1)*pow(dy1, 2) /
+	           (pow(dy1, 2) + pow(dx1, 2));
 
-		new_sprite->init(x, y, w, h, vx, vy, life);
-	}
+	float rx = fact * force * fabsf(dx2) / (dx2)*pow(dx2, 2) /
+	           (pow(dy2, 2) + pow(dx2, 2));
 
-	void update() {
-		for (int i = 0; i < POOL_SIZE; i++) {
+	float ry = fact * force * fabsf(dy2) / (dy2)*pow(dy2, 2) /
+	           (pow(dy2, 2) + pow(dx2, 2));
 
-			if (sprites[i].update(sprites)) {
-				sprites[i].set_next(first_available);
-				first_available = &sprites[i];
-			}
-		}
-	}
+	s->vel.x += (4 * fx - rx) * 4 / pow(s->life, 0.01);
+	s->vel.y += (4 * fy - ry) * 4 / pow(s->life, 0.01);
 
-	int draw() {
-		int quads = 0;
-		int quads30 = 0;
+	s->pos.x += s->vel.x * 0.1;
+	s->pos.y += s->vel.y * 0.09;
 
-		for (int i = 0; i < POOL_SIZE; i++) {
-			if (sprites[i].in_use()) {
+	float sz = map(s->life, 0, 100, 0, s->o_size.x);
+	s->size.x = s->size.y = sz;
 
-				int quads30i = quads30;
+	s->life--;
 
-				vec2 pos = sprites[i].get_pos();
-				vec2 size = sprites[i].get_size();
+	return s->life < 0;
+}
 
-				float x = pos.x;
-				float y = pos.y;
-				float xx = x + size.x;
-				float yy = y + size.y;
+static inline void sprite_magnet(struct sprite *s, int next, int prev) {
+	s->magnet_next = next;
+	s->magnet_prev = prev;
+}
 
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 0;
-
-				quads30 += 30;
-				quads++;
-			}
-		}
-
-		return quads * 6;
-	}
-
-	inline const float *get_vertices() const { return vertices; }
-
-	inline const int size() const { return POOL_SIZE; }
-
-      private:
-	Sprite *first_available;
-	static const int POOL_SIZE = MAX_SPRITES;
-	Sprite sprites[POOL_SIZE];
+struct spritepool {
+	struct sprite *first_available;
+	struct sprite sprites[MAX_SPRITES];
 	float vertices[MAX_SPRITES * SPRITE_MESH_SIZE];
 };
+
+static inline void spritepool_init(struct spritepool *s) {
+	s->first_available = &(s->sprites[0]);
+
+	int magnet_next;
+	int magnet_prev;
+
+	for (int i = 0; i < MAX_SPRITES; i++) {
+
+		magnet_next = (i + 1) % MAX_SPRITES;
+		magnet_prev = (i + 2) % MAX_SPRITES;
+
+		s->sprites[i].index = i;
+		sprite_magnet(&(s->sprites[i]), magnet_next, magnet_prev);
+		s->sprites[i].next = &(s->sprites[i + 1]);
+	}
+
+	s->sprites[MAX_SPRITES - 1].next = NULL;
+}
+
+static inline struct sprite *spritepool_at(struct spritepool *s,
+                                           unsigned int idx) {
+	if (idx < MAX_SPRITES) {
+		return &(s->sprites[idx]);
+	}
+	return NULL;
+}
+
+static inline void spritepool_create(struct spritepool *s, float x, float y,
+                                     float w, float h, float vx, float vy,
+                                     float life) {
+	if (!s->first_available) {
+		return;
+	}
+
+	struct sprite *new_sprite = s->first_available;
+	s->first_available = new_sprite->next;
+	sprite_init(new_sprite, x, y, w, h, vx, vy, life);
+}
+
+static inline void spritepool_update(struct spritepool *s) {
+	for (int i = 0; i < MAX_SPRITES; i++) {
+		if (sprite_update(&(s->sprites[i]), s->sprites)) {
+			s->sprites[i].next = s->first_available;
+			s->first_available = &(s->sprites[i]);
+		}
+	}
+}
+
+static inline int spritepool_draw(struct spritepool *s) {
+	int quads = 0;
+	int quads30 = 0;
+
+	for (int i = 0; i < MAX_SPRITES; i++) {
+		if (sprite_in_use(&(s->sprites[i]))) {
+
+			int quads30i = quads30;
+
+			struct vec2 pos = s->sprites[i].pos;
+			struct vec2 size = s->sprites[i].size;
+
+			float x = pos.x;
+			float y = pos.y;
+			float xx = x + size.x;
+			float yy = y + size.y;
+
+			s->vertices[quads30i++] = x;
+			s->vertices[quads30i++] = y;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 1;
+
+			s->vertices[quads30i++] = xx;
+			s->vertices[quads30i++] = y;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 1;
+			s->vertices[quads30i++] = 1;
+
+			s->vertices[quads30i++] = x;
+			s->vertices[quads30i++] = yy;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 0;
+
+			s->vertices[quads30i++] = x;
+			s->vertices[quads30i++] = yy;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 0;
+
+			s->vertices[quads30i++] = xx;
+			s->vertices[quads30i++] = y;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 1;
+			s->vertices[quads30i++] = 1;
+
+			s->vertices[quads30i++] = xx;
+			s->vertices[quads30i++] = yy;
+			s->vertices[quads30i++] = 0;
+			s->vertices[quads30i++] = 1;
+			s->vertices[quads30i++] = 0;
+
+			quads30 += 30;
+			quads++;
+		}
+	}
+	return quads * 6;
+}
 
 #endif
