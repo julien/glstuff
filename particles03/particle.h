@@ -1,183 +1,157 @@
 #ifndef __PARTICLE_H__
 #define __PARTICLE_H__
 
-const unsigned int MAX_PARTICLES = 100000;
+#include <stdio.h>
+
+const int MAX_PARTICLES = 100000;
 const int PARTICLE_MESH_SIZE = 30;
 
-typedef struct vec2 {
+struct vec2 {
 	float x;
 	float y;
-} vec2;
+};
 
-class Particle {
-      public:
-	Particle() : life(0) {}
-
-	void init(float x, float y, float w, float h, float vx, float vy,
-	          float l) {
-		life = l;
-
-		pos.x = x;
-		pos.y = y;
-
-		size.x = w;
-		size.y = h;
-
-		vel.x = vx;
-		vel.y = vy;
-
-		acc.x = 0;
-		acc.y = 0;
-	}
-
-	bool in_use() const { return life > 0; }
-
-	bool update() {
-		if (!in_use()) {
-			return true;
-		}
-
-		float delta = 0.05;
-		float grav = 2.0;
-
-		acc.y += grav;
-
-		acc.x *= delta;
-		acc.y *= delta;
-
-		vel.x += acc.x;
-		vel.y += acc.y;
-
-		pos.x += vel.x;
-		pos.y += vel.y;
-
-		acc.x = 0.0;
-		acc.y = 0.0;
-
-		life--;
-
-		return life < 0;
-	}
-
-	Particle *get_next() const { return _next; }
-
-	void set_next(Particle *next) { _next = next; }
-
-	vec2 get_pos() const { return pos; }
-
-	vec2 get_size() const { return size; }
-
-      private:
-	Particle *_next;
+struct particle {
+	struct particle *next;
+	struct vec2 pos;
+	struct vec2 vel;
+	struct vec2 acc;
+	struct vec2 size;
 	float life;
-	vec2 pos;
-	vec2 vel;
-	vec2 acc;
-	vec2 size;
 };
 
-class ParticlePool {
-      public:
-	ParticlePool() {
-		first_available = &particles[0];
+static inline void particle_init(struct particle *p, float x, float y, float w,
+                                 float h, float vx, float vy, float life) {
+	p->pos.x = x;
+	p->pos.y = y;
+	p->vel.x = vx;
+	p->vel.y = vy;
+	p->acc.x = 0;
+	p->acc.y = 0;
+	p->size.x = w;
+	p->size.y = h;
+	p->life = life;
+}
 
-		for (int i = 0; i < POOL_SIZE - 1; i++) {
-			particles[i].set_next(&particles[i + 1]);
-		}
-		particles[POOL_SIZE - 1].set_next(NULL);
-	}
+static inline int particle_in_use(struct particle *p) { return p->life > 0; }
 
-	void create(float x, float y, float w, float h, float vx, float vy,
-	            float life) {
+static inline int particle_update(struct particle *p) {
+	if (!particle_in_use(p))
+		return 0;
 
-		if (first_available == NULL) {
-			return;
-		}
+	float delta = 0.05;
+	float grav = 2.0;
 
-		Particle *new_particle = first_available;
+	p->acc.y += grav;
 
-		first_available = new_particle->get_next();
+	p->acc.x *= delta;
+	p->acc.y *= delta;
 
-		new_particle->init(x, y, w, h, vx, vy, life);
-	}
+	p->vel.x += p->acc.x;
+	p->vel.y += p->acc.y;
 
-	void update() {
-		for (int i = 0; i < POOL_SIZE; i++) {
-			if (particles[i].update()) {
-				particles[i].set_next(first_available);
-				first_available = &particles[i];
-			}
-		}
-	}
+	p->pos.x += p->vel.x;
+	p->pos.y += p->vel.y;
 
-	int draw() {
-		int quads = 0;
-		int quads30 = 0;
+	p->acc.x = 0.0;
+	p->acc.y = 0.0;
 
-		for (int i = 0; i < POOL_SIZE; i++) {
-			if (particles[i].in_use()) {
+	p->life--;
 
-				int quads30i = quads30;
+	return p->life < 0;
+}
 
-				vec2 pos = particles[i].get_pos();
-				vec2 size = particles[i].get_size();
-
-				float x = pos.x;
-				float y = pos.y;
-				float xx = x + size.x;
-				float yy = y + size.y;
-
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-
-				vertices[quads30i++] = x;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 0;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = y;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 1;
-
-				vertices[quads30i++] = xx;
-				vertices[quads30i++] = yy;
-				vertices[quads30i++] = 0;
-				vertices[quads30i++] = 1;
-				vertices[quads30i++] = 0;
-
-				quads30 += 30;
-				quads++;
-			}
-		}
-
-		return quads * 6;
-	}
-
-	inline const float *get_vertices() const { return vertices; }
-
-      private:
-	Particle *first_available;
-	static const int POOL_SIZE = MAX_PARTICLES;
-	Particle particles[POOL_SIZE];
+typedef struct pool {
+	struct particle *first_available;
+	struct particle particles[MAX_PARTICLES];
 	float vertices[MAX_PARTICLES * PARTICLE_MESH_SIZE];
-};
+} pool;
+
+static inline void pool_init(struct pool *p) {
+	p->first_available = &p->particles[0];
+	for (int i = 0; i < MAX_PARTICLES - 1; i++) {
+		p->particles[i].next = &p->particles[i + 1];
+	}
+	p->particles[MAX_PARTICLES - 1].next = NULL;
+}
+
+static inline void pool_create(struct pool *p, float x, float y, float w,
+                               float h, float vx, float vy, float life) {
+	if (!p->first_available) {
+		return;
+	}
+
+	struct particle *new_particle = p->first_available;
+
+	p->first_available = new_particle->next;
+	particle_init(new_particle, x, y, w, h, vx, vy, life);
+}
+
+static inline void pool_update(struct pool *p) {
+	for (int i = 0; i < MAX_PARTICLES; i++) {
+		if (particle_update(&p->particles[i])) {
+			p->particles[i].next = p->first_available;
+			p->first_available = &p->particles[i];
+		}
+	}
+}
+
+static inline unsigned int pool_draw(struct pool *p) {
+	unsigned int quads = 0, quads30 = 0;
+
+	for (int i = 0; i < MAX_PARTICLES; i++) {
+		if (particle_in_use(&p->particles[i])) {
+			unsigned int quads30i = quads30;
+
+			struct vec2 pos = p->particles[i].pos;
+			struct vec2 size = p->particles[i].size;
+
+			float x = pos.x;
+			float y = pos.y;
+			float xx = x + size.x;
+			float yy = y + size.y;
+
+			p->vertices[quads30i++] = x;
+			p->vertices[quads30i++] = y;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 1;
+
+			p->vertices[quads30i++] = xx;
+			p->vertices[quads30i++] = y;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 1;
+			p->vertices[quads30i++] = 1;
+
+			p->vertices[quads30i++] = x;
+			p->vertices[quads30i++] = yy;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 0;
+
+			p->vertices[quads30i++] = x;
+			p->vertices[quads30i++] = yy;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 0;
+
+			p->vertices[quads30i++] = xx;
+			p->vertices[quads30i++] = y;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 1;
+			p->vertices[quads30i++] = 1;
+
+			p->vertices[quads30i++] = xx;
+			p->vertices[quads30i++] = yy;
+			p->vertices[quads30i++] = 0;
+			p->vertices[quads30i++] = 1;
+			p->vertices[quads30i++] = 0;
+
+			quads30 += 30;
+			quads++;
+		}
+	}
+	return quads * 6;
+}
 
 #endif
