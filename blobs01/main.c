@@ -10,10 +10,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define WIDTH 1024
+#define HEIGHT 1024
+
 struct blob {
-	float x;
-	float y;
-	float r;
+	float cx;
+	float cy;
+	float cr;
 	float nx;
 	float ny;
 	float nr;
@@ -21,9 +24,6 @@ struct blob {
 	float ey;
 	float er;
 };
-
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
 
 const int max_blobs = 5;
 struct blob *blobs = NULL;
@@ -35,15 +35,15 @@ float *points = NULL;
 
 struct blob *create_blobs(void) {
 	struct blob *blobs = malloc(sizeof(struct blob) * max_blobs);
-	if (blobs == NULL) {
-		fprintf(stderr, "Couln't allocate memory for blobs\n");
+	if (!blobs) {
+		fprintf(stderr, "couln't allocate memory for blobs");
 		return NULL;
 	}
 
 	for (int i = 0; i < max_blobs; i++) {
-		blobs[i].x = 0.0 + (i * 0.1);
-		blobs[i].y = 0.0 + (i * 0.1);
-		blobs[i].r = rand_range(0.1, 3) * 0.1;
+		blobs[i].cx = 0.0 + (i * 0.1);
+		blobs[i].cy = 0.0 + (i * 0.1);
+		blobs[i].cr = rand_range(0.1, 3) * 0.1;
 		blobs[i].nx = rand_range(-10, 10) * 0.1;
 		blobs[i].ny = rand_range(-10, 10) * 0.1;
 		blobs[i].nr = rand_range(0.1, 3) * 0.1;
@@ -59,9 +59,9 @@ void update_blobs(struct blob *bs) {
 	for (int i = 0; i < max_blobs; i++) {
 		struct blob *b = &(bs[i]);
 
-		float dx = (b->nx - b->x);
-		float dy = (b->ny - b->y);
-		float dr = (b->nr - b->r);
+		float dx = (b->nx - b->cx);
+		float dy = (b->ny - b->cy);
+		float dr = (b->nr - b->cr);
 
 		float ax = fabs(dx);
 		float ay = fabs(dy);
@@ -71,9 +71,9 @@ void update_blobs(struct blob *bs) {
 		float vy = dy * b->ey;
 		float vr = dr * b->er;
 
-		b->x += vx;
-		b->y += vy;
-		b->r += vr;
+		b->cx += vx;
+		b->cy += vy;
+		b->cr += vr;
 
 		if (ax < 0.01 && ay < 0.01 && ar < 0.01) {
 			b->ex = rand_range(2, 6) * 0.009;
@@ -88,24 +88,25 @@ void update_blobs(struct blob *bs) {
 }
 
 void create_points(void) {
-	points = (float *)malloc(sizeof(float) * num_points);
-	if (points == NULL) {
-		fprintf(stderr, "Couln't allocate memory for points\n");
+	points = malloc(sizeof(float) * num_points);
+	if (!points) {
+		fprintf(stderr, "couln't allocate memory for points");
 		return;
 	}
 
 	for (int i = 0; i < num_points; i += point_size) {
 		// position
-		points[i] = rand_range(-10, 10) * 0.1;
+		points[i + 0] = rand_range(-10, 10) * 0.1;
 		points[i + 1] = rand_range(-10, 10) * 0.1;
 
 		// pointsize
 		points[i + 2] = (10 + rand() % 80) * 0.1;
 
-		// vx,vy
+		// velocity
 		points[i + 3] = rand_range(-3, 3) * 0.0001;
 		points[i + 4] = rand_range(-3, 3) * 0.0001;
-		// ax,ay
+
+		// acceleation
 		points[i + 5] = rand_range(-2, -9) * 0.1;
 		points[i + 6] = rand_range(-2, -9) * 0.1;
 	}
@@ -121,28 +122,25 @@ void update_points(void) {
 		float ax = points[i + 5];
 		float ay = points[i + 6];
 
-		// velocity += acceleration
 		vx += ax;
 		vy += ay;
 
-		// reset acceleration
 		ax *= 0;
 		ay *= 0;
 
 		for (int k = 0; k < max_blobs; k++) {
 			struct blob b = blobs[k];
-			float dx = (x)-b.x;
-			float dy = (y)-b.y;
+			float dx = (x)-b.cx;
+			float dy = (y)-b.cy;
 			float dist = sqrt(dx * dx + dy * dy);
 
-			if (dist < b.r) {
-				x = b.x + dx / dist * b.r;
-				y = b.y + dy / dist * b.r;
+			if (dist < b.cr) {
+				x = b.cx + dx / dist * b.cr;
+				y = b.cy + dy / dist * b.cr;
 				r = (10 + rand() % 40) * 0.1;
 			}
 		}
 
-		// position += velocity
 		x += vx * 0.01;
 		y += vy * 0.01;
 
@@ -157,10 +155,15 @@ void update_points(void) {
 			y = 1.0;
 		}
 
-		points[i] = x;
+		points[i + 0] = x;
 		points[i + 1] = y;
 		points[i + 2] = r;
 	}
+}
+
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
 }
 
 int main(void) {
@@ -173,18 +176,16 @@ int main(void) {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int x = (int)((mode->width - g_viewport_width) * 0.5);
-	int y = (int)((mode->height - g_viewport_height) * 0.5);
+	int x = (int)((mode->width - WIDTH) * 0.5);
+	int y = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, x, y);
-
-	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
 	gladLoadGL(glfwGetProcAddress);
 	glfwSwapInterval(1);
@@ -200,8 +201,7 @@ int main(void) {
 	glBufferData(GL_ARRAY_BUFFER, num_points * sizeof(GLfloat), points,
 	             GL_STATIC_DRAW);
 
-	int fsize = sizeof(float);
-	int stride = fsize * point_size;
+	int stride = sizeof(float) * point_size;
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -209,8 +209,8 @@ int main(void) {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, NULL);
 	glEnableVertexAttribArray(0);
 
-	// (sizeof(float) * 2 == 2 * 4)
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, stride, (void *)8);
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, stride,
+	                      (void *)(sizeof(float) * 2));
 	glEnableVertexAttribArray(1);
 
 	glUseProgram(sp);
@@ -222,7 +222,6 @@ int main(void) {
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	while (!glfwWindowShouldClose(window)) {
-
 		int w, h;
 		glfwGetFramebufferSize(window, &w, &h);
 		glViewport(0, 0, w, h);
@@ -244,9 +243,9 @@ int main(void) {
 		glfwSwapBuffers(window);
 	}
 
-	if (blobs != NULL)
+	if (blobs)
 		free(blobs);
-	if (points != NULL)
+	if (points)
 		free(points);
 
 	glfwTerminate();

@@ -2,4 +2,6 @@ CompileFlags:
   Add: [
     -I/Users/jc/.local/src/include,
     -I../include,
+    -lGL,
+    -lglfw3
   ]

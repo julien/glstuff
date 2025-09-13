@@ -3,6 +3,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -23,16 +24,6 @@ float lerp(float norm, float min, float max) {
 
 float map(float val, float srcmin, float srcmax, float dstmin, float dstmax) {
 	return lerp(norm(val, srcmin, srcmax), dstmin, dstmax);
-}
-
-/* close your eyes for a few seconds */
-extern int g_viewport_width;
-extern int g_viewport_height;
-
-void glfw_framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-	g_viewport_width = width;
-	g_viewport_height = height;
-	glViewport(0, 0, g_viewport_width, g_viewport_height);
 }
 
 int load_texture(const char *file_name, GLuint *tex, int check) {
