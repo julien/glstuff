@@ -50,6 +50,11 @@ int main(void) {
 	GLint u_matrix = -1;
 
 	pool *particles = malloc(sizeof(pool));
+	if (!particles) {
+		fprintf(stderr, "couldn't allocate memory for particles");
+		exit(1);
+	}
+
 	pool_init(particles);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
