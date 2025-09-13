@@ -1,31 +1,40 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-#include <cmath>
+
+#include "utils.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 struct blob {
-	float x, y, r;
-	float nx, ny, nr;
-	float ex, ey, er;
+	float x;
+	float y;
+	float r;
+	float nx;
+	float ny;
+	float nr;
+	float ex;
+	float ey;
+	float er;
 };
 
 int g_viewport_width = 1024;
 int g_viewport_height = 768;
 
 const int max_blobs = 5;
-blob *blobs = NULL;
+struct blob *blobs = NULL;
 
 const int max_points = 40000;
 const int point_size = 7;
 const int num_points = max_points * point_size;
 float *points = NULL;
 
-blob *create_blobs() {
-	blob *blobs = (blob *)malloc(sizeof(blob) * max_blobs);
+struct blob *create_blobs(void) {
+	struct blob *blobs = malloc(sizeof(struct blob) * max_blobs);
 	if (blobs == NULL) {
 		fprintf(stderr, "Couln't allocate memory for blobs\n");
 		return NULL;
@@ -46,9 +55,9 @@ blob *create_blobs() {
 	return blobs;
 }
 
-void update_blobs(blob *bs) {
+void update_blobs(struct blob *bs) {
 	for (int i = 0; i < max_blobs; i++) {
-		blob *b = &(bs[i]);
+		struct blob *b = &(bs[i]);
 
 		float dx = (b->nx - b->x);
 		float dy = (b->ny - b->y);
@@ -78,7 +87,7 @@ void update_blobs(blob *bs) {
 	}
 }
 
-void create_points() {
+void create_points(void) {
 	points = (float *)malloc(sizeof(float) * num_points);
 	if (points == NULL) {
 		fprintf(stderr, "Couln't allocate memory for points\n");
@@ -102,7 +111,7 @@ void create_points() {
 	}
 }
 
-void update_points() {
+void update_points(void) {
 	for (int i = 0; i < num_points; i += point_size) {
 		float x = points[i];
 		float y = points[i + 1];
@@ -121,7 +130,7 @@ void update_points() {
 		ay *= 0;
 
 		for (int k = 0; k < max_blobs; k++) {
-			blob b = blobs[k];
+			struct blob b = blobs[k];
 			float dx = (x)-b.x;
 			float dy = (y)-b.y;
 			float dist = sqrt(dx * dx + dy * dy);
@@ -154,7 +163,7 @@ void update_points() {
 	}
 }
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
 	glfwInit();
@@ -177,9 +186,8 @@ int main() {
 
 	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
 	glfwMakeContextCurrent(window);
-
-	glewExperimental = GL_TRUE;
-	glewInit();
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 

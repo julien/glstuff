@@ -1,24 +1,25 @@
-CXXFLAGS=-Wall -pedantic
-FLAGS:=$(shell pkg-config --libs --static --cflags-only-I glew glfw3)
-FLAGS+=-I../include
-UNAME=$(shell uname -s)
-ifeq ($(UNAME), Darwin)
-	FLAGS+=-framework OpenGL
+CC=clang
+
+CFLAGS = -Wall -Wextra -pedantic 
+CFLAGS += -I$(HOME)/.local/src/include -I../include
+CFLAGS += -L$(HOME)/.local/src/lib $(HOME)/.local/src/lib/libglfw3.a -lglfw3
+ifeq ($(shell uname -s), Darwin)
+	CFLAGS += -framework OpenGL -framework Cocoa \
+			-framework IOKit -framework CoreFoundation
 endif
 
-bin?=app
-src?=$(shell find *.cpp -type f)
-
-$(bin): $(src)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(FLAGS)
-
-debug: CXXFLAGS += -DDEBUG -g
-debug: clean $(bin);
-
-clean:
-	@if [ -f $(bin) ];then rm $(bin);fi
-
-clean_all:
-	@find . -type f -name '$(bin)' -exec rm {} \+
+bin ?= app
+src ?= $(shell find *.c -type f)
 
 all: $(bin)
+
+$(bin): $(src)
+	$(CC) $(CFLAGS) -o $@ $^
+
+clean:
+ifneq (,$(wildcard $(bin)))
+	@rm $(bin)
+endif
+
+debug: CFLAGS += -DDEBUG -g
+debug: clean $(bin);
