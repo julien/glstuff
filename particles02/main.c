@@ -1,6 +1,10 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <time.h>
 
@@ -17,8 +21,8 @@ typedef struct particle {
 	float life;
 } particle;
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+int WIDTH = 1024;
+int HEIGHT = 768;
 
 const unsigned int max_particles = 50000;
 unsigned int free_particle = 0;
@@ -35,11 +39,11 @@ GLfloat view_matrix[] = {
 
 GLint u_matrix = -1;
 
-void setup_particles() {
+void setup_particles(void) {
 	for (unsigned int i = 0; i < max_particles; i++) {
 		particle *p = &(particles[i]);
-		float x = (g_viewport_width * 0.5) + rand_range(-100, 100);
-		float y = (g_viewport_height * 0.5) + rand_range(-100, 100);
+		float x = (WIDTH * 0.5) + rand_range(-100, 100);
+		float y = (HEIGHT * 0.5) + rand_range(-100, 100);
 
 		p->pos.x = x;
 		p->pos.y = y;
@@ -56,7 +60,7 @@ void setup_particles() {
 	}
 }
 
-int find_free_particle() {
+int find_free_particle(void) {
 	for (unsigned int i = free_particle; i < max_particles; i++) {
 		if (particles[i].life < 0) {
 			free_particle = i;
@@ -72,7 +76,7 @@ int find_free_particle() {
 	return -1;
 }
 
-void draw_particles() {
+void draw_particles(void) {
 	int quads = 0;
 	int quads30 = 0;
 
@@ -133,7 +137,12 @@ void draw_particles() {
 	glDrawArrays(GL_TRIANGLES, 0, quads * 6);
 }
 
-int main() {
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
+
+int main(void) {
 	srand(time(NULL));
 
 	glfwInit();
@@ -144,22 +153,19 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-
-	glfwSetFramebufferSizeCallback(window, glfw_framebuffer_size_callback);
+	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
-
-	glewExperimental = GL_TRUE;
-	glewInit();
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
 	setup_particles();
 
@@ -169,8 +175,8 @@ int main() {
 	u_matrix = glGetUniformLocation(sp, "u_matrix");
 	GLint u_image = glGetUniformLocation(sp, "u_image");
 
-	view_matrix[0] *= 1.0f / (float)g_viewport_width;
-	view_matrix[5] *= -1.0f / (float)g_viewport_height;
+	view_matrix[0] *= 1.0f / (float)WIDTH;
+	view_matrix[5] *= -1.0f / (float)HEIGHT;
 
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
@@ -200,8 +206,9 @@ int main() {
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
+	double previous_seconds = glfwGetTime();
+
 	while (!glfwWindowShouldClose(window)) {
-		static double previous_seconds = glfwGetTime();
 		double current_seconds = glfwGetTime();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;
@@ -220,10 +227,8 @@ int main() {
 			float vx = rand_range(-10, 10);
 			float vy = rand_range(-10, 10);
 
-			float x =
-			    (g_viewport_width * 0.5) + rand_range(-10, 10);
-			float y =
-			    (g_viewport_height * 0.5) + rand_range(-10, 10);
+			float x = (WIDTH * 0.5) + rand_range(-10, 10);
+			float y = (HEIGHT * 0.5) + rand_range(-10, 10);
 
 			particles[index].pos.x = x;
 			particles[index].pos.y = y;
