@@ -28,7 +28,7 @@ struct blob {
 const int max_blobs = 5;
 struct blob *blobs = NULL;
 
-const int max_points = 40000;
+const int max_points = 50000;
 const int point_size = 7;
 const int num_points = max_points * point_size;
 float *points = NULL;
@@ -44,12 +44,14 @@ struct blob *create_blobs(void) {
 		blobs[i].cx = 0.0 + (i * 0.1);
 		blobs[i].cy = 0.0 + (i * 0.1);
 		blobs[i].cr = rand_range(0.1, 3) * 0.1;
+
 		blobs[i].nx = rand_range(-10, 10) * 0.1;
 		blobs[i].ny = rand_range(-10, 10) * 0.1;
-		blobs[i].nr = rand_range(0.1, 3) * 0.1;
-		blobs[i].ex = rand_range(2, 6) * 0.01;
-		blobs[i].ey = rand_range(2, 6) * 0.01;
-		blobs[i].er = rand_range(2, 6) * 0.01;
+		blobs[i].nr = rand_range(1, 3) * 0.1;
+
+		blobs[i].ex = 0.02 + rand_range(0.2, 1) * 0.1;
+		blobs[i].ey = 0.02 + rand_range(0.2, 1) * 0.1;
+		blobs[i].er = 0.02 + rand_range(0.2, 1) * 0.1;
 	}
 
 	return blobs;
@@ -76,9 +78,9 @@ void update_blobs(struct blob *bs) {
 		b->cr += vr;
 
 		if (ax < 0.01 && ay < 0.01 && ar < 0.01) {
-			b->ex = rand_range(2, 6) * 0.009;
-			b->ey = rand_range(2, 6) * 0.009;
-			b->er = rand_range(2, 6) * 0.01;
+			b->ex = rand_range(2, 6) * (rand_range(3, 7) * 0.005);
+			b->ey = rand_range(2, 6) * (rand_range(1, 5) * 0.004);
+			b->er = rand_range(2, 6) * (rand_range(2, 4) * 0.02);
 
 			b->nx = rand_range(-10, 10) * 0.1;
 			b->ny = rand_range(-10, 10) * 0.1;
@@ -96,15 +98,15 @@ void create_points(void) {
 
 	for (int i = 0; i < num_points; i += point_size) {
 		// position
-		points[i + 0] = rand_range(-10, 10) * 0.1;
-		points[i + 1] = rand_range(-10, 10) * 0.1;
+		points[i + 0] = rand_range(-1, 1);
+		points[i + 1] = rand_range(-1, 1);
 
 		// pointsize
-		points[i + 2] = (10 + rand() % 80) * 0.1;
+		points[i + 2] = (10 + rand() % 20) * 0.1;
 
 		// velocity
-		points[i + 3] = rand_range(-3, 3) * 0.0001;
-		points[i + 4] = rand_range(-3, 3) * 0.0001;
+		points[i + 3] = rand_range(-3, 3) * 0.1;
+		points[i + 4] = rand_range(-3, 3) * 0.1;
 
 		// acceleation
 		points[i + 5] = rand_range(-2, -9) * 0.1;
@@ -129,15 +131,18 @@ void update_points(void) {
 		ay *= 0;
 
 		for (int k = 0; k < max_blobs; k++) {
-			struct blob b = blobs[k];
-			float dx = (x)-b.cx;
-			float dy = (y)-b.cy;
+			struct blob *b = &(blobs[k]);
+			float dx = (x)-b->cx;
+			float dy = (y)-b->cy;
 			float dist = sqrt(dx * dx + dy * dy);
 
-			if (dist < b.cr) {
-				x = b.cx + dx / dist * b.cr;
-				y = b.cy + dy / dist * b.cr;
-				r = (10 + rand() % 40) * 0.1;
+			if (dist < b->cr) {
+				points[i + 0] = b->cx + (dx / dist) * b->cr;
+				points[i + 1] = b->cy + (dy / dist) * b->cr;
+				points[i + 2] = (10 + rand() % 40) * 0.09;
+				x = points[i + 0];
+				y = points[i + 1];
+				r = points[i + 2];
 			}
 		}
 
@@ -192,6 +197,8 @@ int main(void) {
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 
+	GLint resolutionLoc;
+
 	blobs = create_blobs();
 	create_points();
 
@@ -215,6 +222,11 @@ int main(void) {
 
 	glUseProgram(sp);
 
+	GLint u_resolution = glGetUniformLocation(sp, "u_resolution");
+	GLint u_time = glGetUniformLocation(sp, "u_time");
+
+	double starttime = glfwGetTime();
+
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -227,6 +239,13 @@ int main(void) {
 		glViewport(0, 0, w, h);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		double currtime = glfwGetTime();
+		double elapsedtime = currtime - starttime;
+		starttime = currtime;
+
+		glUniform2f(u_resolution, (float)w, (float)h);
+		glUniform1f(u_time, starttime);
 
 		update_blobs(blobs);
 		update_points();
@@ -249,5 +268,5 @@ int main(void) {
 		free(points);
 
 	glfwTerminate();
-	return 0;
+	return EXIT_SUCCESS;
 }
