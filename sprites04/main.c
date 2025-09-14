@@ -1,23 +1,28 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <time.h>
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+const int WIDTH = 1024;
+const int HEIGHT = 768;
+
 const unsigned int VERTEX_SIZE = 9;
 const unsigned int MAX_BATCH = 10922;
 const unsigned int VERTEX_DATA_SIZE = VERTEX_SIZE * MAX_BATCH * 6;
 const unsigned int VERTICES_PER_QUAD = 6;
 unsigned int count = 0;
 GLfloat pdata[VERTEX_DATA_SIZE];
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -28,8 +33,8 @@ GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
                            1.0f,
                            0.0f,
                            0.0f};
-float mousex = (float)(g_viewport_width * 0.5);
-float mousey = (float)(g_viewport_height * 0.5);
+float mousex = (float)(WIDTH * 0.5);
+float mousey = (float)(HEIGHT * 0.5);
 struct sprite {
 	float ax;
 	float ay;
@@ -47,11 +52,12 @@ const unsigned int MAX_SPRITES = 100000;
 const unsigned int SPRITE_SIZE = 8;
 unsigned int freesprite = 0;
 unsigned int spritecount = 0;
-sprite sprites[MAX_SPRITES];
+struct sprite sprites[MAX_SPRITES];
+
 const float delta = 0.075;
 const float grav = 1.8;
 
-int get_free_sprite() {
+int get_free_sprite(void) {
 	for (unsigned int i = freesprite; i < MAX_SPRITES; i++) {
 		if (sprites[i].life < 0) {
 			freesprite = i;
@@ -67,9 +73,9 @@ int get_free_sprite() {
 	return -1;
 }
 
-void init_sprites() {
+void init_sprites(void) {
 	for (size_t i = 0; i < MAX_SPRITES; i++) {
-		sprite *s = &(sprites[i]);
+		struct sprite *s = &(sprites[i]);
 		float x = mousex + rand_range(-10, 10);
 		float y = mousey + rand_range(-10, 10);
 		s->ax = 0;
@@ -85,7 +91,7 @@ void init_sprites() {
 	}
 }
 
-void flush() {
+void flush(void) {
 	if (0 == count)
 		return;
 	/* TODO: optimize this (glBufferSubData);    */
@@ -186,7 +192,7 @@ void draw(float x, float y, float w, float h, float r, float tx, float ty,
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	/* Rotation | Translation | Scale | Position | UV */
 	int fsize = sizeof(GLfloat);
 	int stride = fsize * 9;
@@ -217,14 +223,20 @@ void init_buffers() {
 }
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
+	(void)(window);
 	mousex = xpos;
 	mousey = ypos;
 }
 
-int main() {
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
+
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1) exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -232,28 +244,27 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	    WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
 	glfwSetCursorPosCallback(window, cursor_pos_callback);
-
-	glewExperimental = GL_TRUE;
-	glewInit();
+	glfwSetFramebufferSizeCallback(window, size_callback);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
 
 	init_buffers();
 
-	/* Rendering settings */
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -269,8 +280,9 @@ int main() {
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
+	double previous_seconds = glfwGetTime();
+
 	while (!glfwWindowShouldClose(window)) {
-		static double previous_seconds = glfwGetTime();
 		double current_seconds = glfwGetTime();
 		double elapsed_seconds = current_seconds - previous_seconds;
 		previous_seconds = current_seconds;

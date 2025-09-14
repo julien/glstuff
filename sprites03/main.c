@@ -1,6 +1,10 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <time.h>
 
@@ -15,21 +19,23 @@ struct sprite {
 	float y;
 };
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+const int WIDTH = 1024;
+const int HEIGHT = 768;
+
 const unsigned int MAX_SPRITES = 1000;
 const int SPRITE_MESH_SIZE = 12;
 const int SPRITE_SIZE = 2;
 unsigned int freesprite = 0;
 unsigned int spritecount = 0;
-sprite sprites[MAX_SPRITES];
+struct sprite sprites[MAX_SPRITES];
 GLfloat vpos_data[MAX_SPRITES * SPRITE_MESH_SIZE];
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -44,25 +50,25 @@ const float delta = 0.05;
 const float grav = 3.0;
 GLfloat mat[] = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
 
-void setup_sprites() {
+void setup_sprites(void) {
 	for (size_t i = 0; i < MAX_SPRITES; i++) {
-		sprite *s = &(sprites[i]);
-		float w = (float)(g_viewport_width * 0.5);
-		float h = (float)(g_viewport_height * 0.5);
+		struct sprite *s = &(sprites[i]);
+		float w = (float)(WIDTH * 0.5);
+		float h = (float)(HEIGHT * 0.5);
 		float x = w + rand_range(-10, 10);
 		float y = h + rand_range(-10, 10);
 		s->ax = 0;
 		s->ay = 0;
 		s->life = rand_range(100, 200);
-		s->size = SPRITE_SIZE + rand_range(2, SPRITE_SIZE);
-		s->vx = rand_range(-1, 1);
-		s->vy = rand_range(-1, 1);
+		s->size = SPRITE_SIZE + rand_range(1, SPRITE_SIZE);
+		s->vx = rand_range(-.3, .3);
+		s->vy = rand_range(-.3, .3);
 		s->x = x;
 		s->y = y;
 	}
 }
 
-int find_free_sprite() {
+int find_free_sprite(void) {
 	for (unsigned int i = freesprite; i < MAX_SPRITES; i++) {
 		if (sprites[i].life < 0) {
 			freesprite = i;
@@ -128,30 +134,37 @@ void draw_rect(float x, float y, float w, float h) {
 	}
 }
 
-int main() {
+void size_callback(GLFWwindow *window, int width, int height) {
+	(void)(window);
+	glViewport(0, 0, width, height);
+}
+
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+	if (!window)
+		exit(EXIT_FAILURE);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
+	glfwSetFramebufferSizeCallback(window, size_callback);
 	glfwMakeContextCurrent(window);
-
-	glewExperimental = GL_TRUE;
-	glewInit();
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
@@ -209,10 +222,8 @@ int main() {
 				    rand_range(SPRITE_SIZE * 0.5, SPRITE_SIZE);
 				float vx = rand_range(-2, 2);
 				float vy = rand_range(-2, 2);
-				float x = (g_viewport_width * 0.5) +
-				          rand_range(-20, 20);
-				float y = (g_viewport_height * 0.5) +
-				          rand_range(-20, 20);
+				float x = (WIDTH * 0.5) + rand_range(-20, 20);
+				float y = (HEIGHT * 0.5) + rand_range(-20, 20);
 				sprites[i].life = rand_range(100, 200);
 				sprites[i].size = size;
 				sprites[i].vx = vx;

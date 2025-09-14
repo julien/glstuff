@@ -1,20 +1,24 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <time.h>
 
 #define SPRITE_COUNT 1000000
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+const int WIDTH = 1024;
+const int HEIGHT = 768;
 
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -42,10 +46,10 @@ static GLuint uvvbo;
 static size_t vpossize;
 static size_t vcolsize;
 static size_t vuvsize;
-float mousex = g_viewport_width * 0.5;
-float mousey = g_viewport_height * 0.5;
+float mousex = WIDTH * 0.5;
+float mousey = HEIGHT * 0.5;
 
-void setcol(float r, float g, float b, float a = 1.0f) {
+void setcol(float r, float g, float b, float a) {
 	rgba[0] = r;
 	rgba[1] = g;
 	rgba[2] = b;
@@ -117,7 +121,7 @@ void draw(float x, float y, float w, float h) {
 	++buffidx;
 }
 
-void flush() {
+void flush(void) {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -139,7 +143,6 @@ void flush() {
 	vuvcurr = vuvdata;
 }
 
-/* sprites */
 struct sprites {
 	float px[SPRITE_COUNT];
 	float py[SPRITE_COUNT];
@@ -154,10 +157,10 @@ struct sprites {
 	size_t count;
 };
 
-void init_sprites(sprites *s) {
+void init_sprites(struct sprites *s) {
 	for (size_t i = 0; i < SPRITE_COUNT; i++) {
-		s->px[i] = (g_viewport_width * 0.5) + rand_range(-10, 10);
-		s->py[i] = (g_viewport_height * 0.5) + rand_range(-10, 10);
+		s->px[i] = (WIDTH * 0.5) + rand_range(-10, 10);
+		s->py[i] = (HEIGHT * 0.5) + rand_range(-10, 10);
 		s->vx[i] = rand_range(-10, 10) * sin((float)i);
 		s->vy[i] = rand_range(-10, 10) * sin((float)i);
 		s->cr[i] = rand_range(1, 10) * 0.1f;
@@ -169,7 +172,7 @@ void init_sprites(sprites *s) {
 	s->count = 10000;
 }
 
-void update_sprites(sprites *s) {
+void update_sprites(struct sprites *s) {
 	float gx = mousex;
 	float gy = mousey;
 	float dx, dy, acc, ax, ay;
@@ -191,28 +194,28 @@ void update_sprites(sprites *s) {
 		s->vx[i] *= 0.96;
 		s->vy[i] *= 0.96;
 
-		if (s->px[i] > g_viewport_width) {
+		if (s->px[i] > WIDTH) {
 			s->px[i] = 0;
 		} else if (s->px[i] < 0) {
-			s->px[i] = g_viewport_width;
+			s->px[i] = WIDTH;
 		}
 
-		if (s->py[i] > g_viewport_height) {
+		if (s->py[i] > HEIGHT) {
 			s->py[i] = 0;
 		} else if (s->py[i] < 0) {
-			s->py[i] = g_viewport_height;
+			s->py[i] = HEIGHT;
 		}
 	}
 }
 
-void render_sprites(sprites *s) {
+void render_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		setcol(s->cr[i], s->cg[i], s->cb[i]);
+		setcol(s->cr[i], s->cg[i], s->cb[i], 1.0f);
 		draw(s->px[i], s->py[i], s->size[i], s->size[i]);
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
@@ -249,41 +252,43 @@ void init_buffers() {
 }
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
+	(void)(window);
 	mousex = xpos;
 	mousey = ypos;
 }
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+
+	if (!window)
+		exit(EXIT_FAILURE);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-	glfwSetCursorPosCallback(window, cursor_pos_callback);
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
+	glfwSetCursorPosCallback(window, cursor_pos_callback);
 
-	sprites *s = (sprites *)malloc(sizeof(sprites));
-	if (NULL == s) {
-		fprintf(stderr, "Couldn't allocate memory for sprites\n");
-		return 1;
-	}
+	struct sprites *s = (struct sprites *)malloc(sizeof(struct sprites));
+	if (!s)
+		exit(EXIT_FAILURE);
 
 	init_sprites(s);
 
@@ -330,7 +335,7 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 
-	if (NULL != s)
+	if (s)
 		free(s);
 
 	glfwTerminate();

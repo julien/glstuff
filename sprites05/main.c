@@ -1,20 +1,24 @@
-#include "utils.h"
-#include <GL/glew.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#include "utils.h"
+
 #include <stdio.h>
 #include <time.h>
 
 #define SPRITE_COUNT 1000000
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+const int WIDTH = 1024;
+const int HEIGHT = 768;
 
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -27,7 +31,6 @@ GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
                            0.0f};
 
 static const size_t vertcount = 6;
-static const size_t max_vertices = SPRITE_COUNT * vertcount;
 static float rgba[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static size_t buffidx = 0;
 static float *vposdata = NULL;
@@ -45,7 +48,7 @@ static size_t vcolsize;
 static size_t vuvsize;
 static float gravity = 1.5f;
 
-void setcol(float r, float g, float b, float a = 1.0f) {
+void setcol(float r, float g, float b, float a) {
 	rgba[0] = r;
 	rgba[1] = g;
 	rgba[2] = b;
@@ -117,7 +120,7 @@ void draw(float x, float y, float w, float h) {
 	++buffidx;
 }
 
-void flush() {
+void flush(void) {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -152,9 +155,9 @@ struct sprites {
 	size_t count;
 };
 
-void init_sprites(sprites *s) {
+void init_sprites(struct sprites *s) {
 	for (size_t i = 0; i < SPRITE_COUNT; i++) {
-		s->px[i] = (g_viewport_width * 0.5) + rand_range(-10, 10);
+		s->px[i] = (WIDTH * 0.5) + rand_range(-10, 10);
 		s->py[i] = rand_range(-10, 10);
 		s->vx[i] = rand_range(-10, 10) * sin((float)i);
 		s->vy[i] = rand_range(-10, 10) * sin((float)i);
@@ -166,21 +169,21 @@ void init_sprites(sprites *s) {
 	s->count = 1;
 }
 
-void update_sprites(sprites *s) {
+void update_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
 		s->vy[i] += gravity;
 		s->py[i] += s->vy[i];
 		s->px[i] += s->vx[i];
 
-		if (s->py[i] > g_viewport_height) {
-			s->py[i] = g_viewport_height;
+		if (s->py[i] > HEIGHT) {
+			s->py[i] = HEIGHT;
 			s->vy[i] *= -0.9f;
 		} else if (s->py[i] < 0) {
 			s->py[i] = 0;
 			s->vy[i] *= -0.9f;
 		}
-		if (s->px[i] > g_viewport_width) {
-			s->px[i] = g_viewport_width;
+		if (s->px[i] > WIDTH) {
+			s->px[i] = WIDTH;
 			s->vx[i] *= -0.9f;
 		} else if (s->px[i] < 0) {
 			s->px[i] = 0;
@@ -190,14 +193,14 @@ void update_sprites(sprites *s) {
 	}
 }
 
-void render_sprites(sprites *s) {
+void render_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		setcol(s->cr[i], s->cg[i], s->cb[i]);
+		setcol(s->cr[i], s->cg[i], s->cb[i], 1.0);
 		draw(s->px[i], s->py[i], s->sx[i], s->sx[i]);
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
@@ -233,36 +236,33 @@ void init_buffers() {
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 }
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
-
-	sprites *s = (sprites *)malloc(sizeof(sprites));
-	if (NULL == s) {
-		fprintf(stderr, "Couldn't allocate memory for sprites\n");
-		return 1;
-	}
+	struct sprites *s = malloc(sizeof(struct sprites));
+	if (!s)
+		exit(EXIT_FAILURE);
 
 	init_sprites(s);
 
@@ -309,7 +309,7 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 
-	if (NULL != s)
+	if (s)
 		free(s);
 
 	glfwTerminate();

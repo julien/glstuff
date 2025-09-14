@@ -1,7 +1,11 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #include "utils.h"
 #include "vec2.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include <stdio.h>
 #include <time.h>
 
@@ -11,15 +15,15 @@
 #define MIN_FLEE_DISTANCE 60
 #define MAX_FLEE_DISTANCE 400
 
-int g_viewport_width = 800;
-int g_viewport_height = 800;
+const int WIDTH = 800;
+const int HEIGHT = 800;
 
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -48,10 +52,10 @@ static size_t vpossize;
 static size_t vcolsize;
 static size_t vuvsize;
 
-vec2 mouse;
+struct vec2 mouse;
 float flee_distance = MIN_FLEE_DISTANCE;
 
-void setcol(float r, float g, float b, float a = 1.0f) {
+void setcol(float r, float g, float b, float a) {
 	rgba[0] = r;
 	rgba[1] = g;
 	rgba[2] = b;
@@ -123,7 +127,7 @@ void draw(float x, float y, float w, float h) {
 	++buffidx;
 }
 
-void flush() {
+void flush(void) {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -159,14 +163,14 @@ struct sprites {
 	float vx[SPRITE_COUNT];
 	float vy[SPRITE_COUNT];
 
-	vec2 target[SPRITE_COUNT];
+	struct vec2 target[SPRITE_COUNT];
 
 	size_t count;
 };
 
-void init_sprites(sprites *s) {
-	float hw = (float)g_viewport_width * 0.5;
-	float hh = (float)g_viewport_height * 0.5;
+void init_sprites(struct sprites *s) {
+	float hw = (float)WIDTH * 0.5;
+	float hh = (float)HEIGHT * 0.5;
 
 	for (size_t i = 0; i < SPRITE_COUNT; i++) {
 		s->ax[i] = 0;
@@ -176,7 +180,7 @@ void init_sprites(sprites *s) {
 		s->vx[i] = 0;
 		s->vx[i] = 0;
 
-		vec2 target = {s->px[i], s->py[i]};
+		struct vec2 target = {s->px[i], s->py[i]};
 
 		s->target[i] = target;
 
@@ -191,18 +195,18 @@ void init_sprites(sprites *s) {
 	s->count = 3000;
 }
 
-void apply_sprite_force(sprites *s, size_t i, vec2 f) {
+void apply_sprite_force(struct sprites *s, size_t i, struct vec2 f) {
 	if (i < SPRITE_COUNT) {
 		s->ax[i] += f.x;
 		s->ay[i] += f.y;
 	}
 }
 
-vec2 sprite_flee(sprites *s, size_t i, vec2 t) {
-	vec2 f;
+struct vec2 sprite_flee(struct sprites *s, size_t i, struct vec2 t) {
+	struct vec2 f = {.x = 0, .y = 0};
 
 	if (i < SPRITE_COUNT) {
-		vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
+		struct vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
 
 		float d = vec2_get_mag(desired);
 		if (d < flee_distance) {
@@ -219,12 +223,12 @@ vec2 sprite_flee(sprites *s, size_t i, vec2 t) {
 	return f;
 }
 
-vec2 sprite_arrive(sprites *s, size_t i, vec2 t) {
-	vec2 f;
+struct vec2 sprite_arrive(struct sprites *s, size_t i, struct vec2 t) {
+	struct vec2 f = {.x = 0, .y = 0};
 
 	if (i < SPRITE_COUNT) {
 
-		vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
+		struct vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
 
 		float speed = SPRITE_MAX_SPEED;
 		float d = vec2_get_mag(desired);
@@ -242,13 +246,13 @@ vec2 sprite_arrive(sprites *s, size_t i, vec2 t) {
 	return f;
 }
 
-void apply_behaviors(sprites *s) {
+void apply_behaviors(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		vec2 arrive = sprite_arrive(s, i, s->target[i]);
+		struct vec2 arrive = sprite_arrive(s, i, s->target[i]);
 		arrive.x *= 0.2;
 		arrive.y *= 0.2;
 
-		vec2 flee = sprite_flee(s, i, mouse);
+		struct vec2 flee = sprite_flee(s, i, mouse);
 		flee.x *= 0.2;
 		flee.y *= 0.2;
 
@@ -257,7 +261,7 @@ void apply_behaviors(sprites *s) {
 	}
 }
 
-void update_sprites(sprites *s) {
+void update_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
 		s->px[i] += s->vx[i];
 		s->py[i] += s->vy[i];
@@ -270,14 +274,14 @@ void update_sprites(sprites *s) {
 	}
 }
 
-void render_sprites(sprites *s) {
+void render_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		setcol(s->cr[i], s->cg[i], s->cb[i]);
+		setcol(s->cr[i], s->cg[i], s->cb[i], 1.0f);
 		draw(s->px[i], s->py[i], s->sx[i], s->sy[i]);
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
@@ -314,41 +318,43 @@ void init_buffers() {
 }
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
+	(void)(window);
 	mouse.x = xpos;
 	mouse.y = ypos;
 }
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+	if (!window)
+		exit(EXIT_FAILURE);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-	glfwSetCursorPosCallback(window, cursor_pos_callback);
+
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
+	glfwSetCursorPosCallback(window, cursor_pos_callback);
 
-	sprites *s = (sprites *)malloc(sizeof(sprites));
-	if (NULL == s) {
-		fprintf(stderr, "Couldn't allocate memory for sprites\n");
-		return 1;
-	}
+	struct sprites *s = malloc(sizeof(struct sprites));
+	if (!s)
+		exit(EXIT_FAILURE);
 
 	mouse.x = 0;
 	mouse.y = 0;

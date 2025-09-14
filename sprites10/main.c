@@ -1,21 +1,25 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #include "utils.h"
 #include "vec2.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include <stdio.h>
 #include <time.h>
 
 #define SPRITE_COUNT 1000000
 
-int g_viewport_width = 1024;
-int g_viewport_height = 768;
+const int WIDTH = 800;
+const int HEIGHT = 800;
 
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -43,10 +47,8 @@ static GLuint uvvbo;
 static size_t vpossize;
 static size_t vcolsize;
 static size_t vuvsize;
-float mousex = g_viewport_width * 0.5;
-float mousey = g_viewport_height * 0.5;
 
-void setcol(float r, float g, float b, float a = 1.0f) {
+void setcol(float r, float g, float b, float a) {
 	rgba[0] = r;
 	rgba[1] = g;
 	rgba[2] = b;
@@ -118,7 +120,7 @@ void draw(float x, float y, float w, float h) {
 	++buffidx;
 }
 
-void flush() {
+void flush(void) {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -140,65 +142,29 @@ void flush() {
 	vuvcurr = vuvdata;
 }
 
-/* sprites */
 struct sprites {
-	float px[SPRITE_COUNT];
-	float py[SPRITE_COUNT];
-	float vx[SPRITE_COUNT];
-	float vy[SPRITE_COUNT];
+	float ax[SPRITE_COUNT];
+	float ay[SPRITE_COUNT];
 	float cr[SPRITE_COUNT];
 	float cg[SPRITE_COUNT];
 	float cb[SPRITE_COUNT];
-
-	float size[SPRITE_COUNT];
-	float forcex[SPRITE_COUNT];
-	float forcey[SPRITE_COUNT];
+	float px[SPRITE_COUNT];
+	float py[SPRITE_COUNT];
+	float sx[SPRITE_COUNT];
+	float sy[SPRITE_COUNT];
+	float vx[SPRITE_COUNT];
+	float vy[SPRITE_COUNT];
 	float life[SPRITE_COUNT];
-	float life_speed[SPRITE_COUNT];
 
 	size_t count;
 };
 
-void init_sprites(sprites *s) {
-	for (size_t i = 0; i < SPRITE_COUNT; i++) {
-		s->px[i] = (g_viewport_width * 0.5) + rand_range(-10, 10);
-		s->py[i] = (g_viewport_height * 0.5) + rand_range(-10, 10);
-		s->vx[i] = rand_range(-10, 10) * sin((float)i);
-		s->vy[i] = rand_range(-10, 10) * sin((float)i);
-		s->cr[i] = rand_range(1, 10) * 0.1f;
-		s->cg[i] = rand_range(1, 10) * 0.1f;
-		s->cb[i] = rand_range(1, 10) * 0.1f;
+struct sprites *particles;
+struct vec2 mouse;
 
-		s->size[i] = 3 + (int)rand_range(0, 12);
-		s->forcex[i] = 0;
-		s->forcey[i] = 1;
-		s->life[i] = 0;
-		s->life_speed[i] = rand_range(1, 10) * 0.1;
-	}
-	s->count = 10000;
-}
-
-void reset_sprite(sprites *s, size_t i) {
-	if (i < SPRITE_COUNT) {
-		s->px[i] = (g_viewport_width * 0.5) + rand_range(-10, 10);
-		s->py[i] = (g_viewport_height * 0.5) + rand_range(-10, 10);
-		s->vx[i] = rand_range(-10, 10) * sin((float)i);
-		s->vy[i] = rand_range(-10, 10) * sin((float)i);
-		s->cr[i] = rand_range(1, 10) * 0.1f;
-		s->cg[i] = rand_range(1, 10) * 0.1f;
-		s->cb[i] = rand_range(1, 10) * 0.1f;
-
-		s->size[i] = 3 + (int)rand_range(0, 12);
-		s->forcex[i] = 0;
-		s->forcey[i] = 1;
-		s->life[i] = 0;
-		s->life_speed[i] = rand_range(1, 10) * 0.01;
-	}
-}
-
-void update_sprites(sprites *s) {
+void update_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		s->life[i] += s->life_speed[i];
+		s->life[i]++;
 
 		if (s->life[i] == 20) {
 			s->vx[i] *= 0.8;
@@ -206,34 +172,51 @@ void update_sprites(sprites *s) {
 		}
 
 		if (s->life[i] < 20) {
-			s->size[i] *= 0.99;
+			s->sx[i] *= 0.99;
+			s->sy[i] *= 0.99;
 		} else {
-			s->size[i] *= 0.97;
+			s->sx[i] *= 0.95;
+			s->sy[i] *= 0.95;
 		}
 
 		s->px[i] += s->vx[i];
 		s->py[i] += s->vy[i];
 
-		vec2 vxy = {s->vx[i], s->vy[i]};
-		vec2_rotate(&vxy, rand_range(-(M_PI * 0.5), M_PI * 0.25));
+		struct vec2 v = {s->vx[i], s->vy[i]};
+		vec2_rotate(&v, rand_range(-(M_PI * 0.25), (M_PI * 0.25)));
 
-		s->vx[i] = vxy.x;
-		s->vy[i] = vxy.y;
+		s->vx[i] = v.x;
+		s->vy[i] = v.y;
 
-		if (s->life[i] >= 100) {
-			reset_sprite(s, i);
+		if (s->sx[i] < 1 || s->sy[i] < 1) {
+			s->px[i] = mouse.x;
+			s->py[i] = mouse.y;
+
+			struct vec2 v = {rand_range(2.0, 6.0), 0};
+			vec2_rotate(&v, 2 * M_PI);
+
+			s->vx[i] = v.x;
+			s->vy[i] = v.y;
+
+			s->cr[i] = rand_range(1, 10) * 0.1f;
+			s->cg[i] = rand_range(1, 10) * 0.1f;
+			s->cb[i] = rand_range(1, 10) * 0.1f;
+
+			float size = 5 + rand_range(5, 50);
+			s->sx[i] = s->sy[i] = size;
+			s->life[i] = 0;
 		}
 	}
 }
 
-void render_sprites(sprites *s) {
+void render_sprites(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		setcol(s->cr[i], s->cg[i], s->cb[i]);
-		draw(s->px[i], s->py[i], s->size[i], s->size[i]);
+		setcol(s->cr[i], s->cg[i], s->cb[i], 1.0f);
+		draw(s->px[i], s->py[i], s->sx[i], s->sy[i]);
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
@@ -270,43 +253,55 @@ void init_buffers() {
 }
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
-	mousex = xpos;
-	mousey = ypos;
+	(void)(window);
+	mouse.x = xpos;
+	mouse.y = ypos;
+
+	int count = (int)rand_range(2, 5);
+
+	if (particles->count + count >= SPRITE_COUNT)
+		return;
+
+	while (--count) {
+		particles->count++;
+	}
 }
 
-int main() {
+int main(void) {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+	if (!window)
+		exit(EXIT_FAILURE);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-	glfwSetCursorPosCallback(window, cursor_pos_callback);
+
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
+	glfwSetCursorPosCallback(window, cursor_pos_callback);
 
-	sprites *s = (sprites *)malloc(sizeof(sprites));
-	if (NULL == s) {
-		fprintf(stderr, "Couldn't allocate memory for sprites\n");
-		return 1;
-	}
+	particles = malloc(sizeof(struct sprites));
+	if (!particles)
+		exit(EXIT_FAILURE);
 
-	init_sprites(s);
+	mouse.x = WIDTH * 0.5;
+	mouse.y = WIDTH * 0.5;
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
@@ -322,7 +317,7 @@ int main() {
 	glUniform1i(u_image, 0);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -333,17 +328,12 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		update_sprites(s);
-		render_sprites(s);
+		update_sprites(particles);
+		render_sprites(particles);
+
 		flush();
 
 		glfwPollEvents();
-
-		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_UP)) {
-			if (s->count + 100 < SPRITE_COUNT) {
-				s->count += 100;
-			}
-		}
 
 		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, 1);
@@ -351,8 +341,8 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 
-	if (NULL != s)
-		free(s);
+	if (particles)
+		free(particles);
 
 	glfwTerminate();
 	return 0;

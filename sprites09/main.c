@@ -1,21 +1,29 @@
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #include "utils.h"
 #include "vec2.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include <stdio.h>
 #include <time.h>
 
 #define SPRITE_COUNT 1000000
+#define SPRITE_MAX_FORCE 30
+#define SPRITE_MAX_SPEED 20
+#define MIN_FLEE_DISTANCE 400
+#define MAX_FLEE_DISTANCE 1000
 
-int g_viewport_width = 800;
-int g_viewport_height = 800;
+const int WIDTH = 800;
+const int HEIGHT = 800;
 
-GLfloat view_matrix[16] = {2.0f / (float)g_viewport_width,
+GLfloat view_matrix[16] = {2.0f / (float)WIDTH,
                            0.0f,
                            0.0f,
                            0.0f,
                            0.0f,
-                           -2.0f / (float)g_viewport_height,
+                           -2.0f / (float)HEIGHT,
                            0.0f,
                            0.0f,
                            0.0f,
@@ -44,7 +52,11 @@ static size_t vpossize;
 static size_t vcolsize;
 static size_t vuvsize;
 
-void setcol(float r, float g, float b, float a = 0.3f) {
+struct vec2 mouse;
+struct vec2 target;
+float flee_distance = MIN_FLEE_DISTANCE;
+
+void setcol(float r, float g, float b, float a) {
 	rgba[0] = r;
 	rgba[1] = g;
 	rgba[2] = b;
@@ -116,7 +128,7 @@ void draw(float x, float y, float w, float h) {
 	++buffidx;
 }
 
-void flush() {
+void flush(void) {
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, posvbo);
 	glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -150,69 +162,122 @@ struct sprites {
 	float sy[SPRITE_COUNT];
 	float vx[SPRITE_COUNT];
 	float vy[SPRITE_COUNT];
-	float life[SPRITE_COUNT];
-
+	struct vec2 target[SPRITE_COUNT];
 	size_t count;
 };
 
-sprites *particles;
-vec2 mouse;
+void init_sprites(struct sprites *s) {
+	float hw = (float)WIDTH * 0.5;
+	float hh = (float)HEIGHT * 0.5;
 
-void update_sprites(sprites *s) {
-	for (size_t i = 0; i < s->count; i++) {
-		s->life[i]++;
+	for (size_t i = 0; i < SPRITE_COUNT; i++) {
+		s->ax[i] = 0;
+		s->ay[i] = 0;
+		s->px[i] = hw + rand_range(-400, 400);
+		s->py[i] = hh + rand_range(-400, 400);
+		s->vx[i] = 0;
+		s->vx[i] = 0;
 
-		if (s->life[i] == 20) {
-			s->vx[i] *= 0.8;
-			s->vy[i] *= 0.8;
-		}
+		s->target[i].x = s->px[i];
+		s->target[i].y = s->py[i];
 
-		if (s->life[i] < 20) {
-			s->sx[i] *= 0.99;
-			s->sy[i] *= 0.99;
-		} else {
-			s->sx[i] *= 0.95;
-			s->sy[i] *= 0.95;
-		}
+		/* colors */
+		s->cr[i] = rand_range(1, 10) * 0.1f;
+		s->cg[i] = rand_range(1, 10) * 0.1f;
+		s->cb[i] = rand_range(1, 10) * 0.1f;
 
-		s->px[i] += s->vx[i];
-		s->py[i] += s->vy[i];
+		float size = 3 + rand_range(0, 12);
+		s->sx[i] = s->sy[i] = size;
+	}
+	s->count = 50000;
+}
 
-		vec2 v = {s->vx[i], s->vy[i]};
-		vec2_rotate(&v, rand_range(-(M_PI * 0.25), (M_PI * 0.25)));
-
-		s->vx[i] = v.x;
-		s->vy[i] = v.y;
-
-		if (s->sx[i] < 1 || s->sy[i] < 1) {
-			s->px[i] = mouse.x;
-			s->py[i] = mouse.y;
-
-			vec2 v = {rand_range(2.0, 6.0), 0};
-			vec2_rotate(&v, 2 * M_PI);
-
-			s->vx[i] = v.x;
-			s->vy[i] = v.y;
-
-			s->cr[i] = rand_range(1, 10) * 0.1f;
-			s->cg[i] = rand_range(1, 10) * 0.1f;
-			s->cb[i] = rand_range(1, 10) * 0.1f;
-
-			float size = 5 + rand_range(5, 50);
-			s->sx[i] = s->sy[i] = size;
-			s->life[i] = 0;
-		}
+void apply_sprite_force(struct sprites *s, size_t i, struct vec2 f) {
+	if (i < SPRITE_COUNT) {
+		s->ax[i] += f.x;
+		s->ay[i] += f.y;
 	}
 }
 
-void render_sprites(sprites *s) {
+struct vec2 sprite_flee(struct sprites *s, size_t i, struct vec2 t) {
+	struct vec2 f = {.x = 0, .y = 0};
+
+	if (i < SPRITE_COUNT) {
+		struct vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
+
+		float d = vec2_get_mag(desired);
+		if (d < flee_distance) {
+			vec2_set_mag(&desired, SPRITE_MAX_SPEED);
+			desired.x *= -1;
+			desired.y *= -1;
+
+			f.x = desired.x - s->vx[i];
+			f.y = desired.y - s->vy[i];
+			vec2_limit(&f, SPRITE_MAX_FORCE);
+		}
+	}
+
+	return f;
+}
+
+struct vec2 sprite_arrive(struct sprites *s, size_t i, struct vec2 t) {
+	struct vec2 f = {.x = 0, .y = 0};
+
+	if (i < SPRITE_COUNT) {
+		struct vec2 desired = {t.x - s->px[i], t.y - s->py[i]};
+
+		float speed = SPRITE_MAX_SPEED;
+		float d = vec2_get_mag(desired);
+		if (d < 100) {
+			speed = map(d, 0, 100, 0, SPRITE_MAX_SPEED);
+		}
+		vec2_set_mag(&desired, speed);
+
+		f.x = desired.x - s->vx[i];
+		f.y = desired.y - s->vy[i];
+
+		vec2_limit(&f, SPRITE_MAX_FORCE);
+	}
+
+	return f;
+}
+
+void apply_behaviors(struct sprites *s) {
 	for (size_t i = 0; i < s->count; i++) {
-		setcol(s->cr[i], s->cg[i], s->cb[i]);
+		struct vec2 arrive = sprite_arrive(s, i, mouse);
+		arrive.x *= 0.2;
+		arrive.y *= 0.2;
+
+		struct vec2 flee = sprite_flee(s, i, s->target[i]);
+		flee.x *= 0.2;
+		flee.y *= 0.2;
+
+		apply_sprite_force(s, i, arrive);
+		apply_sprite_force(s, i, flee);
+	}
+}
+
+void update_sprites(struct sprites *s) {
+	for (size_t i = 0; i < s->count; i++) {
+		s->px[i] += s->vx[i];
+		s->py[i] += s->vy[i];
+
+		s->vx[i] += s->ax[i];
+		s->vy[i] += s->ay[i];
+
+		s->ax[i] = 0;
+		s->ay[i] = 0;
+	}
+}
+
+void render_sprites(struct sprites *s) {
+	for (size_t i = 0; i < s->count; i++) {
+		setcol(s->cr[i], s->cg[i], s->cb[i], 1.0f);
 		draw(s->px[i], s->py[i], s->sx[i], s->sy[i]);
 	}
 }
 
-void init_buffers() {
+void init_buffers(void) {
 	vpossize = SPRITE_COUNT * (sizeof(float) * 12);
 	vcolsize = SPRITE_COUNT * (sizeof(float) * 24);
 	vuvsize = SPRITE_COUNT * (sizeof(float) * 12);
@@ -249,53 +314,52 @@ void init_buffers() {
 }
 
 static void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos) {
+	(void)(window);
 	mouse.x = xpos;
 	mouse.y = ypos;
-
-	int count = (int)rand_range(2, 5);
-
-	if (particles->count + count >= SPRITE_COUNT)
-		return;
-
-	while (--count) {
-		particles->count++;
-	}
 }
 
 int main() {
 	srand(time(NULL));
 
-	glfwInit();
+	if (glfwInit() == -1)
+		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow *window = glfwCreateWindow(
-	    g_viewport_width, g_viewport_height, "  ", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "  ", NULL, NULL);
+
+	if (!window)
+		exit(EXIT_FAILURE);
 
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *mode = glfwGetVideoMode(mon);
 
-	int wx = (int)((mode->width - g_viewport_width) * 0.5);
-	int wy = (int)((mode->height - g_viewport_height) * 0.5);
+	int wx = (int)((mode->width - WIDTH) * 0.5);
+	int wy = (int)((mode->height - HEIGHT) * 0.5);
 
 	glfwSetWindowPos(window, wx, wy);
-	glfwSetCursorPosCallback(window, cursor_pos_callback);
+
 	glfwMakeContextCurrent(window);
+	gladLoadGL(glfwGetProcAddress);
+	glfwSwapInterval(1);
 
-	glewExperimental = GL_TRUE;
-	glewInit();
+	glfwSetCursorPosCallback(window, cursor_pos_callback);
 
-	particles = (sprites *)malloc(sizeof(sprites));
-	if (NULL == particles) {
-		fprintf(stderr, "Couldn't allocate memory for sprites\n");
-		return 1;
-	}
+	struct sprites *s = malloc(sizeof(struct sprites));
+	if (!s)
+		exit(EXIT_FAILURE);
 
-	mouse.x = g_viewport_width * 0.5;
-	mouse.y = g_viewport_width * 0.5;
+	mouse.x = 0;
+	mouse.y = 0;
+
+	target.x = rand_range(0, WIDTH);
+	target.y = rand_range(0, HEIGHT);
+
+	init_sprites(s);
 
 	GLuint sp = create_program("vert.glsl", "frag.glsl");
 	glUseProgram(sp);
@@ -311,7 +375,7 @@ int main() {
 	glUniform1i(u_image, 0);
 
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -322,12 +386,53 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		update_sprites(particles);
-		render_sprites(particles);
+		float dx = (target.x - mouse.x);
+		float dy = (target.y - mouse.y);
 
+		float ax = fabs(dx);
+		float ay = fabs(dy);
+
+		float vx = dx * 0.01;
+		float vy = dy * 0.01;
+
+		mouse.x += vx;
+		mouse.y += vy;
+
+		if (ax < 1 && ay < 1) {
+			target.x = rand_range(0, WIDTH);
+			target.y = rand_range(0, HEIGHT);
+		}
+
+		update_sprites(s);
+		apply_behaviors(s);
+		render_sprites(s);
 		flush();
 
 		glfwPollEvents();
+
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_UP)) {
+			if (s->count + 100 < SPRITE_COUNT) {
+				s->count += 100;
+			}
+		}
+
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_DOWN)) {
+			if (s->count - 100 > 1) {
+				s->count -= 100;
+			}
+		}
+
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_RIGHT)) {
+			if (flee_distance < MAX_FLEE_DISTANCE) {
+				flee_distance++;
+			}
+		}
+
+		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_LEFT)) {
+			if (flee_distance > MIN_FLEE_DISTANCE) {
+				flee_distance--;
+			}
+		}
 
 		if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, 1);
@@ -335,8 +440,8 @@ int main() {
 		glfwSwapBuffers(window);
 	}
 
-	if (NULL != particles)
-		free(particles);
+	if (s)
+		free(s);
 
 	glfwTerminate();
 	return 0;
