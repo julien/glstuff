@@ -21,11 +21,11 @@ typedef struct particle {
 	float life;
 } particle;
 
-int WIDTH = 1024;
-int HEIGHT = 768;
-
+const int WIDTH = 1024;
+const int HEIGHT = 768;
 const unsigned int max_particles = 50000;
 unsigned int free_particle = 0;
+
 particle particles[max_particles];
 const int particle_mesh_size = 30;
 const int particle_uv_size = 10;
@@ -181,7 +181,7 @@ int main(void) {
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
 	GLuint tex;
-	load_texture("alien.png", &tex, 0);
+	load_texture("../img/ball.png", &tex, 0);
 	glUniform1i(u_image, 0);
 
 	GLuint vp_vbo;

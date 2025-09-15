@@ -117,6 +117,7 @@ int main(void) {
 	glUniform2f(u_resolution, WIDTH, HEIGHT);
 
 	glEnable(GL_BLEND);
+	glEnable(GL_PROGRAM_POINT_SIZE);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -215,8 +216,6 @@ int main(void) {
 		}
 		glfwSwapBuffers(window);
 	}
-
-	glDisable(GL_PROGRAM_POINT_SIZE);
 
 	glfwTerminate();
 	return 0;

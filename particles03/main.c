@@ -69,7 +69,7 @@ int main(void) {
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
 	GLuint tex;
-	load_texture("heart.png", &tex, 0);
+	load_texture("../img/heart.png", &tex, 0);
 	glUniform1i(u_image, 0);
 
 	GLuint vp_vbo;

@@ -302,7 +302,7 @@ int main(void) {
 
 	GLint u_image = glGetUniformLocation(sp, "u_image");
 	GLuint tex;
-	load_texture("ball.png", &tex, 0);
+	load_texture("../img/ball.png", &tex, 0);
 	glUniform1i(u_image, 0);
 
 	glEnable(GL_BLEND);

@@ -273,7 +273,7 @@ int main(void) {
 
 	GLint u_image = glGetUniformLocation(sp, "u_image");
 	GLuint tex;
-	load_texture("heart.png", &tex, 0);
+	load_texture("../img/heart.png", &tex, 0);
 	glUniform1i(u_image, 0);
 
 	init_sprites();

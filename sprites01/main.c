@@ -3,8 +3,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "sprite.h"
 #include "utils.h"
+#include "sprite.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -66,7 +66,7 @@ int main(void) {
 	glUniformMatrix4fv(u_matrix, 1, GL_FALSE, view_matrix);
 
 	GLuint tex;
-	load_texture("alien.png", &tex, 0);
+	load_texture("../img/alien.png", &tex, 0);
 	glUniform1i(u_image, 0);
 
 	GLuint vp_vbo;
